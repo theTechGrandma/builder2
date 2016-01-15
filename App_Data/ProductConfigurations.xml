@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <Products>
+    <Product Name="DST">
+      <Version Version="4.0.0.1" MajorMinor="4.0" CoreVersion="5.1">
+        <WindowsServices>
+          <Delegator Server="TestBuild" UserName="TestBuild\installb" Password="installer" ServiceName="DSTM Delegation Service 3.1_Test" />
+          <WHS1 Server="TestBuild" UserName="TestBuild\installb" Password="installer" ServiceName="DST:SM WHS 4.0 TestBuild" />
+        </WindowsServices>
+        <Servers>
+          <Server Name="TestBuild" Ip="192.168.20.151" ServerURL="https://dst.testbuild.promodel.corp" DatabaseName="dstm_40_test" DatabaseIp="promodel_ann_arbor_batgirl ">
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application" Path="C:\inetpub\wwwroot\DSTM\" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Delegator\Application" Path="C:\Program Files\ProModel\Delegator\" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\WHS\" />
+          </Server>
+        </Servers>
+      </Version>
+      <Version Version="4.1.1.44" MajorMinor="4.1.1" CoreVersion="Current">
+        <WindowsServices>
+          <Delegator Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTM Delegation Service 4.1" />
+          <WHS1 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST1" />
+          <WHS2 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST2" />
+          <WHS3 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST3" />
+        </WindowsServices>
+        <Servers>
+          <Server Name="TestBuild" Ip="192.168.20.151" ServerURL="https://dst.testbuild.promodel.corp" DatabaseName="dstm_40_test" DatabaseIp="promodel_ann_arbor_batgirl">
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application" Path="C:\inetpub\wwwroot\DSTSM\" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Delegator\Application" Path="C:\Program Files\ProModel\DSTSM Delegator4.1\" />
+          </Server>
+          <Server Name="TestBuild" Ip="192.168.20.151" ServerURL="https://dst.testbuild.promodel.corp" DatabaseName="dstm_40_test" DatabaseIp="promodel_ann_arbor_batgirl ">
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST1\" Port="8411" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST2\" Port="8412" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST3\" Port="8413" />
+          </Server>
+        </Servers>
+        <HelpFiles Server="TestBuild" UserName="TestBuild\Administrator" Password="Special123$">
+          <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application\Help" Path="C:\inetpub\wwwroot\DSTSM\Help" />
+          <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\$$version$$\Help" Path="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application\Help" />
+        </HelpFiles>
+      </Version>
+      <Version Version="4.2.0.3" MajorMinor="Current" CoreVersion="Current">
+        <WindowsServices>
+          <Delegator Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTM Delegation Service 4.1" />
+          <WHS1 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST1" />
+          <WHS2 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST2" />
+          <WHS3 Server="192.168.20.151" UserName="192.168.20.151\Administrator" Password="Special123$" ServiceName="DSTSM TestBuild_WHS_4.1 TST3" />
+          <WHS4 Server="192.168.20.214" UserName="THOR\Administrator" Password="Special123$" ServiceName="DSTSM WHS 4.2 TST3" />
+        </WindowsServices>
+        <Servers>
+          <Server Name="TestBuild" Ip="192.168.20.151" ServerURL="https://dst.testbuild.promodel.corp" DatabaseName="dstm_40_test" DatabaseIp="promodel_ann_arbor_batgirl">
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application" Path="C:\inetpub\wwwroot\DSTSM\" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Delegator\Application" Path="C:\Program Files\ProModel\DSTSM Delegator4.1\" />
+          </Server>
+          <Server Name="TestBuild" Ip="192.168.20.151" ServerURL="https://dst.testbuild.promodel.corp" DatabaseName="dstm_40_test" DatabaseIp="promodel_ann_arbor_batgirl ">
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST1\" Port="8411" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST2\" Port="8412" />
+            <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\WHS\Application" Path="C:\Program Files\ProModel\TestBuild_WHS TST3\" Port="8413" />
+          </Server>
+          <Server Name="THOR" Ip="192.168.20.214" ServerURL="https://dst.test.42.promodel.corp" DatabaseName="dst_42_test" DatabaseIp="promodel_ann_arbor_sheldon">
+            <Location Source="\\mi-nas-storage2\public\_CurrentDevelopment\DST\$$majorMinor$$\Staging\WHS\Application" Path="\\192.168.20.214\ProModel\WHS 4.2 TST3" Port="8291" />
+          </Server>
+        </Servers>
+        <HelpFiles Server="TestBuild" UserName="TestBuild\Administrator" Password="Special123$">
+          <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application\Help" Path="C:\inetpub\wwwroot\DSTSM\Help" />
+          <Location Source="C:\_Builds\DST\$$majorMinor$$\Staging\Application\$$version$$\Help" Path="C:\_Builds\DST\$$majorMinor$$\Staging\Application\Application\Help" />
+        </HelpFiles>
+      </Version>
+      <EmailGroup>tammym@promodel.com</EmailGroup>
+      <ErrorEmailGroup>tammym@promodel.com</ErrorEmailGroup>
+    </Product>
+    <Product Name="NST">
+      <Version Version="4.1.0.12" MajorMinor="Current" CoreVersion="Current">
+        <Ports>
+          <Port Name="NSTEngineService" Port="44311" />
+        </Ports>
+        <!--<Delegator Server="192.168.20.160" UserName="192.168.20.160\Administrator" Password="Special123$" ServiceName="DSTM Delegation Service 2.1 Test" />-->
+        <Services>
+        </Services>
+        <Servers>
+          <Server Name="Aquaman" Ip="192.168.20.132" ServerURL="https://nst.test.09.promodel.corp" DatabaseName="ProModel_NST_09_Test_INT" DatabaseIp="192.168.20.124\NSTSQL">
+            <Location Source="\\mi-nas-storage2\public\_CurrentDevelopment\NST\0.9\Staging\Application\Application" Path="\\192.168.20.132\c$\inetpub\NST 0.9 (INT)\NST" />
+            <Files>
+              <File Path="\\mi-nas-storage2\public\_CurrentDevelopment\NST\0.9\Staging\Application\Application\Web.config" />
+            </Files>
+          </Server>
+        </Servers>
+      </Version>
+      <EmailGroup>NSTDevs@promodel.com, NSTTesters@promodel.com, EIT@promodel.com</EmailGroup>
+      <ErrorEmailGroup>NSTDevs@promodel.com, NSTTesters@promodel.com, EIT@promodel.com</ErrorEmailGroup>
+    </Product>
+    <Product Name="AST">
+      <Version Version="4.1.0.12" MajorMinor="Current" CoreVersion="Current">
+        <Ports>
+        </Ports>
+        <Services>
+        </Services>
+        <Servers>
+          <Server Name="AA-ASTWEB" Ip="192.168.20.131" ServerURL="https://ast.test.67.promodel.corp" DatabaseName="ProModel_AST_67_Test" DatabaseIp="192.168.20.124\MSSQL2K8">
+            <Location Source="\\mi-nas-storage2\public\_CurrentDevelopment\AST\6.7\Staging\Application\Application" Path="\\192.168.20.131\c$\inetpub\ASTWeb67SSL\" />
+            <Files>
+              <File Path="\\mi-nas-storage2\public\_CurrentDevelopment\AST\6.7\Staging\Application\Application\Web.config" />
+            </Files>
+          </Server>
+        </Servers>
+      </Version>
+      <EmailGroup>ASTDevs@promodel.com, ASTTesters@promodel.com, EIT@promodel.com</EmailGroup>
+      <ErrorEmailGroup>ASTDevs@promodel.com, ASTTesters@promodel.com, EIT@promodel.com</ErrorEmailGroup>
+      <Version Version="6.6.1.43" MajorMinor="6.6.1" CoreVersion="3.4">
+        <Ports>
+        </Ports>
+        <Services>
+        </Services>
+        <Servers>
+          <Server Name="AA-ASTWEB" Ip="192.168.20.131" ServerURL="https://ast.test.66.promodel.corp" DatabaseName="ProModel_AST_66_Test" DatabaseIp="192.168.20.124\MSSQL2K8">
+            <Location Source="\\mi-nas-storage2\public\_CurrentDevelopment\AST\6.6\Staging\Application\Application" Path="\\192.168.20.131\c$\inetpub\ASTWeb66SSL\" />
+            <Files>
+              <File Path="\\mi-nas-storage2\public\_CurrentDevelopment\AST\6.6\Staging\Application\Application\Web.config" />
+            </Files>
+          </Server>
+        </Servers>
+      </Version>
+      <EmailGroup>ASTDevs@promodel.com, ASTTesters@promodel.com, EIT@promodel.com</EmailGroup>
+      <ErrorEmailGroup>ASTDevs@promodel.com, ASTTesters@promodel.com, EIT@promodel.com</ErrorEmailGroup>
+    </Product>
+  </Products>
+</Configuration>

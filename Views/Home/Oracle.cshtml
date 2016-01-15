@@ -1,0 +1,159 @@
+﻿<script src="~/Scripts/jquery-1.9.1.js"></script>
+<script type="text/javascript" src="~/Scripts/modernizr-1.5.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+<script type="text/javascript">   
+
+    var timing;
+    $(document).ready(function GetStatus() {
+        jQuery.support.cors = true;
+
+        $.ajax({
+            url: '/api/buildStatus?product="DST"',
+            type: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                WriteResponses(data);
+            },
+            timeout: timing = ("GetStatus()", 1000),
+            complete: timing = setTimeout(function () { GetStatus() }, 1000),
+            error: function () {
+                $('#Button1').removeAttr('disabled'),
+                clearTimeout(timing);
+            }
+        });
+
+        function WriteResponses(logs) {
+            if (logs.Message == null) {
+                document.getElementById('message').innerHTML = "<h2>Ready to build.</h2>";;
+            } else { document.getElementById('message').innerHTML = "<h2>" + logs.Message + "</h2>" }
+        }
+    })
+
+    //Get Versions for dropdownlist (with sort)
+    $(document).ready(function GetRelease(){
+        $.ajax({
+            type: "GET",
+            url: '/xml/DST/release',
+            dataType: "json",
+            success: function (data) {
+                var result = [];
+                $.each(data, function (key, value) {
+                    result[key] = value;
+                });
+
+                result.sort;
+
+                $.each(result, function (index, value) {
+                    if (value != undefined) {
+                        var appenddata = "<option value = '" + value.Release + " '>" + value.Release + " </option>";
+                        $(appenddata).appendTo('#DLRelease');
+                    }
+                })
+
+                GetVersionFromRelease();
+            }
+        });
+    })
+
+    function GetVersionFromRelease(){
+        var urlparam = $('#DLRelease').val();
+        $.ajax({
+            type: "GET",
+            url: '/xml/DST/version?release=' + urlparam,
+            dataType: "json",
+            success: function (data) {
+                var json = data;
+                var x = findElement(json, "Version");
+                var valsplit = x.split('.');
+                document.getElementById('vF1').value = valsplit[0];
+                document.getElementById('vF2').value = valsplit[1];
+                document.getElementById('vF3').value = valsplit[2];
+                document.getElementById('fromVersion').value = valsplit[3] -1
+
+                document.getElementById('vT1').value = valsplit[0];
+                document.getElementById('vT2').value = valsplit[1];
+                document.getElementById('vT3').value = valsplit[2];
+                document.getElementById('toVersion').value = valsplit[3]
+            }
+    });
+    
+    }
+
+    function findElement(arr, propName) {
+        for (var i = 0; i < arr.length; i++)
+                return arr[i][propName];
+    }
+
+    function GenerateMasterDeploy() {        
+            $('#Button1').prop('disabled', true);
+            var fromVersion = $('#vF1').val() + "." + $('#vF2').val() + "." + $('#vF3').val() + "." + $('#fromVersion').val().trim();
+            var toVersion = $('#vT1').val() + "." + $('#vT2').val() + "." + $('#vT3').val() + "." + $('#toVersion').val().trim();
+            var release = $('#DLRelease').val().trim();
+            $.ajax({
+                type: "POST",
+                url: "/api/buildOracle?product=DST&release=" + release + "&fromVersion=" + fromVersion + "&toVersion=" + toVersion,
+                data: {},
+                contentType: "application/json; charset=utf-8",
+                datatype: "JSON",
+                success: function () { $('#Button1').removeAttr('disabled'), clearTimeout(timing) },
+                error: function () {
+                    $('#Button1').removeAttr('disabled'),
+                    clearTimeout(timing);
+                }
+            });
+        }
+    
+</script>
+
+             
+    <div id="site_content">
+        <form name="builder" action="#" method="post">              
+        <div id="sidebar_container">
+                    <div class="sidebar">
+                        <h4>Build Status</h4>
+                        <h5><span id="message"></span></h5>
+                    </div> 
+                </div>
+             <div id="center">
+                 <table>
+                     <tr>
+                         <td>From Release</td>
+                         <td><select id="DLRelease" onchange="GetVersionFromRelease()"></select></td>
+                     </tr>
+                     <tr>
+                         <td>From Version</td>
+                         <td>
+                             <input id="vF1" type="text" style="width:25px" disabled ="disabled" />
+                             <input id="vF2" type="text" style="width:25px" disabled ="disabled" />
+                             <input id="vF3" type="text" style="width:25px" />
+                             <input style="width:25px" id="fromVersion" name="name" />
+                         </td>
+                     </tr>                                         
+                     <tr>
+                         <td>To Version</td>
+                         <td>
+                             <input id="vT1" type="text" style="width:25px" disabled ="disabled" />
+                             <input id="vT2" type="text" style="width:25px" disabled ="disabled" />
+                             <input id="vT3" type="text" style="width:25px" />
+                             <input style="width:25px" id="toVersion" name="name" />
+                         </td>
+                     </tr>
+                     <tr>
+                         <td colspan="2"><b>This will generate the oracle deployment script.</b></td>                         
+                     </tr> 
+                 </table>        
+            </div>
+             <div class="form_settings">
+                 <input id="Button1" class="submit" type="button" value="Generate" onclick="GenerateMasterDeploy()" />
+             </div>    
+          </form>
+        </div>
+
+<script>
+    //jquery
+    $("#fromVersion").spinner();
+    $("#toVersion").spinner();
+</script>
+
+

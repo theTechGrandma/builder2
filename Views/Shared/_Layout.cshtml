@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    @Scripts.Render("~/bundles/modernizr")
+    @Styles.Render("~/Content/Site.css")
+    @Styles.Render("~/Content/style.css")
+</head>
+<body>
+    <div id="container">
+        <img src="~/images/sun.png" alt="sunshine" />
+        <div id="main">
+            <header>
+                <div id="logo">
+                    <div id="logo_text">
+                        <h1><a href="index.html">DST<span class="logo_colour">Builder</span>HG</a></h1>
+                        <h2>Building.DST.products</h2>
+                    </div>
+                    <div><img style="margin: 0px 0 10px 20px; float: right;padding: 10px; border: 1px solid #ddd;" src="~/images/photo.png" alt="photo" />
+                    </div>
+                </div>
+                <nav>
+                    <ul class="sf-menu" id="nav">
+                        <li>@Html.ActionLink("Binaries", "Index", "Home", new { area = "" }, null)</li>
+                        <li>@Html.ActionLink("Oracle", "Oracle", "Home", new { area = "" }, null)</li>
+                         <li>@Html.ActionLink("Deploy", "Deploy", "Home", new { area = "" }, null)</li>
+                    </ul>
+                </nav>
+            </header>
+            
+                <div id="content-wrapper">
+                    @RenderBody()
+
+                    @Scripts.Render("~/bundles/jquery")
+                    @RenderSection("scripts", required: false)
+            </div>
+            <footer>
+                <p>ProModel Corporation - Copyright 2014</p>
+            </footer>
+        </div>
+    </div>
+    <div id="grass"></div>
+
+</body>
+</html>
