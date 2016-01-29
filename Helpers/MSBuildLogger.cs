@@ -8,10 +8,7 @@ namespace DSTBuilder.Helpers
 {
     public class MSBuildLogger : Logger
     {
-        public virtual string Parameters 
-        {
-            get { return @"C:\Mercurial\DSTSM\TestBuild\buildlog.txt"; }
-        }
+        
         /// <summary>
         /// Initialize is guaranteed to be called by MSBuild at the start of the build
         /// before any events are raised.

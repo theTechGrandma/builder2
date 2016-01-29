@@ -12,9 +12,16 @@ namespace DSTBuilder.Models
     public class XmlRepository : IXmlRepository
     {        
         private readonly string _xmlDatabase = ConfigurationManager.AppSettings["xmlLocation"];
+        private readonly BuildRepository _buildRepository = new BuildRepository();
+
+        public string Product
+        {
+            get { return _buildRepository.Product; }
+        }
 
         public IEnumerable<Versions> GetRelease(string product)
         {
+            //product = Product;
             //List for dropdown for choosing version to build
             XElement xml = XElement.Load(_xmlDatabase);
             var versions = xml.Descendants("Product").Where(e => e.Attribute("Name").Value == product);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using DSTBuilder.Models;
@@ -286,89 +287,60 @@ namespace DSTBuilder.Helpers
         //    }
         //}
 
-        public async Task<bool> CopyFiles(string startDirectory, string endDirectory, string fileType)
+
+        public async Task CopyFileAsync(string sourcePath, string destinationPath, string fileType)
         {
-            Directory.CreateDirectory(endDirectory);
-            foreach (string filename in Directory.EnumerateFiles(startDirectory))
+            Directory.CreateDirectory(destinationPath);
+            //string[] filePaths = Directory.GetFiles(sourcePath, fileType, System.IO.SearchOption.TopDirectoryOnly);
+            List<Task> tasks = new List<Task>();
+            List<FileStream> sourceStreams = new List<FileStream>();
+
+            try
             {
-                using (FileStream sourceStream = File.Open(filename, FileMode.Open))
+                foreach (string filename in Directory.EnumerateFiles(sourcePath))
                 {
-                    using (
-                        FileStream destinationStream =
-                            File.Create(endDirectory + filename.Substring(filename.LastIndexOf('\\'))))
+                    File.SetAttributes(filename, FileAttributes.Normal);
+                    using (FileStream sourceStream = File.Open(filename, FileMode.Open))
                     {
-                        await sourceStream.CopyToAsync(destinationStream);
+                        using (FileStream destinationStream = File.Create(destinationPath + filename.Substring(filename.LastIndexOf('\\'))))
+                        {
+                            Task copyTask = sourceStream.CopyToAsync(destinationStream);
+                            sourceStreams.Add(sourceStream);
+                            tasks.Add(copyTask);
+                        }
                     }
                 }
-            }
-            return false;
-        }
 
-        public int ExecuteCommand(string command, int timeout)
-        {
-            var processInfo = new ProcessStartInfo("cmd.exe", "/C " + command)
-            {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                WorkingDirectory = "C:\\",
-            };
-
-            var process = Process.Start(processInfo);
-            process.WaitForExit(timeout);
-            var exitCode = process.ExitCode;
-            process.Close();
-            return exitCode;
-        }
-
-        public int MsBuildCommand(string buildLocation, string solution, string buildRepo)
-        {
-            System.Diagnostics.Process proc = new System.Diagnostics.Process();
-            proc.StartInfo.FileName = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe";
-            try
-            {
-                proc.Start();
-                //var msbuildpath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe";
-                //var msbuildExeArguments = " /t:rebuild /p:Configuration=Release";
-
-                //var processInfo = new ProcessStartInfo()
-                //{
-                //    //FileName = msbuildpath,
-                //    WorkingDirectory = "C:\\",
-                //    Arguments = "/t:rebuild /p:Configuration=Release",
-                //    CreateNoWindow = true,
-                //    UseShellExecute = false
-                //};
-
-                //Process process = Process.Start(processInfo);
-                //Console.WriteLine(process.StandardOutput.ReadToEnd());
-            }
-            catch (Exception)
-            {
-                
-                throw;
-            }
-
-            try
-            {
-                if (proc.HasExited)
-                {
-                    //....
-                }
-            }
-            catch (System.InvalidOperationException e)
-            {
-                //cry and weep about it here.
+                Task.WaitAll(tasks.ToArray());
             }
 
             finally
             {
-                proc.Close();
+                foreach (FileStream sourceStream in sourceStreams)
+                {
+                    sourceStream.Close();
+                }
             }
-
-            return proc.ExitCode;
         }
 
-
-        
+        public bool CopyFiles(string start, string finish, string fileType)
+        {
+            Directory.CreateDirectory(finish);
+            string[] filePaths = Directory.GetFiles(start, fileType, System.IO.SearchOption.TopDirectoryOnly);
+            foreach (string file in filePaths)
+            {
+                try
+                {
+                    string newFile = file.Replace(start, finish);
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Copy(file, newFile, true);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

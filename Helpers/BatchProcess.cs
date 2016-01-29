@@ -43,6 +43,7 @@ namespace DSTBuilder.Helpers
                 return false;
             }
         }
+
         public bool RunProcess(string path, string commandline)
         {
             Process proc = new Process();
@@ -68,6 +69,7 @@ namespace DSTBuilder.Helpers
                 return false;
             }
         }
+
         public void RunPowershell(string scriptFile)
         {            
             RunspaceConfiguration runspaceConfiguration = RunspaceConfiguration.Create();
@@ -150,6 +152,73 @@ namespace DSTBuilder.Helpers
                 runspace.Close();
             }
         }
+
+        public bool BuildFiles(string build, string projectFile, string sourceRepo, string arguments, string logFileName)
+        {
+            try
+            {
+                string solutionFileName = string.Format("\"{0}\"", projectFile);
+
+                ProcessStartInfo pi = new ProcessStartInfo
+                {
+                    WorkingDirectory = build,
+                    FileName = "msbuild.exe",
+                    Arguments = solutionFileName + arguments + @" /p:Configuration=Release /p:VisualStudioVersion=12.0 /fl /flp:logfile=" + sourceRepo + logFileName + ".txt",
+
+                    UserName = ConfigurationManager.AppSettings["filePathUsername"],
+                    RedirectStandardOutput = true,
+                };
+
+                var password = ConfigurationManager.AppSettings["filePathPassword"];
+                SecureString secureString = new SecureString();
+                string myPassword = password;
+
+                foreach (char c in myPassword)
+                {
+                    secureString.AppendChar(c);
+                }
+                secureString.MakeReadOnly();
+                pi.Password = secureString;
+                pi.UseShellExecute = false;
+                pi.CreateNoWindow = true;
+
+                var process = Process.Start(pi);
+                if (process == null)
+                    return false;
+                process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                var exitCode = process.ExitCode;
+
+                if (exitCode != 0)
+                    return false;
+
+                return true;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        public int ExecuteCommand(string command, int timeout)
+        {
+            var processInfo = new ProcessStartInfo("cmd.exe", "/C " + command)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WorkingDirectory = "C:\\",
+            };
+
+            var process = Process.Start(processInfo);
+            process.WaitForExit(timeout);
+            var exitCode = process.ExitCode;
+            process.Close();
+            return exitCode;
+        }
+
+        
+
         #endregion Methods
     }
 }

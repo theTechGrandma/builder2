@@ -34,5 +34,6 @@ C:\Mercurial\DSTBuilder\DST_Build\bin\System.Web.WebPages.xml
 C:\Mercurial\DSTBuilder\DST_Build\bin\System.Web.WebPages.Deployment.xml
 C:\Mercurial\DSTBuilder\DST_Build\bin\System.Web.WebPages.Razor.xml
 C:\Mercurial\DSTBuilder\DST_Build\bin\Microsoft.Web.Infrastructure.xml
+C:\Mercurial\DSTBuilder\DST_Build\obj\Debug\DSTBuilder.csprojResolveAssemblyReference.cache
 C:\Mercurial\DSTBuilder\DST_Build\obj\Debug\DSTBuilder.dll
 C:\Mercurial\DSTBuilder\DST_Build\obj\Debug\DSTBuilder.pdb
