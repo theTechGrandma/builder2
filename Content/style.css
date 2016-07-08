@@ -226,7 +226,7 @@ nav {
   border-radius: 10px 10px 0 0;
   -moz-border-radius: 10px 10px 0 0;
   -webkit-border: 10px 10px 0 0;
-  background: #53C7FD;
+  background: #25c447;
 } 
 
 #site_content { 
@@ -239,12 +239,17 @@ nav {
 
 #sidebar_container {  
   float: right;
-  width: 202px;
+  width: 300px;
+}
+
+#sidebar_main {  
+  float: left;
+  width: 600px;
 }
 
 .sidebar { 
   margin: 10px 0;
-  width: 178px;
+  width: 275px;
   padding: 10px;
   border: 1px solid #C9E5E9;
   border-radius: 15px 15px 15px 15px;
@@ -389,9 +394,8 @@ table tr th, table tr td {
 table tr td { 
   background: #C8EAE9;
   color: #47433F;
-  border-top: 1px solid #FFF;
   height:35px;
-
+  padding: 10px;
 }
 
 /**
@@ -496,7 +500,7 @@ ul#nav {
 }
 
 ul#nav ul { 
-  background: #53C7FD;
+  background: #25c447;
   margin-top: 0;
   padding-bottom: 15px;
 }

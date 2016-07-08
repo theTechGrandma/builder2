@@ -25,6 +25,7 @@
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>50e66cb1</NuGetPackageImportStamp>
+    <AlwaysCompileMarkupFilesInSeparateDomain>true</AlwaysCompileMarkupFilesInSeparateDomain>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -54,14 +55,17 @@
       <HintPath>packages\Mercurial\Mercurial.Net.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Build">
-      <HintPath>packages\Microsoft.Build.dll</HintPath>
+      <HintPath>packages\MsBuild\Microsoft.Build.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Build.Engine">
+      <HintPath>packages\MsBuild\Microsoft.Build.Engine.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Build.Framework">
-      <HintPath>packages\Microsoft.Build.Framework.dll</HintPath>
+      <HintPath>packages\MsBuild\Microsoft.Build.Framework.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Build.Utilities.v12.0, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\Microsoft.Build.Utilities.v12.0.dll</HintPath>
+      <HintPath>packages\MsBuild\Microsoft.Build.Utilities.v12.0.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.VisualBasic" />
@@ -164,20 +168,16 @@
     </Compile>
     <Compile Include="Helpers\Files.cs" />
     <Compile Include="Helpers\BatchProcess.cs" />
-    <Compile Include="Helpers\Logging.cs" />
-    <Compile Include="Helpers\MSBuildLogger.cs" />
     <Compile Include="Helpers\SendMail.cs" />
     <Compile Include="Models\BuildRepository.cs" />
     <Compile Include="Models\IXmlRepository.cs" />
     <Compile Include="Models\Log.cs" />
+    <Compile Include="Models\Mercurial.cs" />
     <Compile Include="Models\XmlData.cs" />
     <Compile Include="Models\XmlRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_Data\ProductConfigurations.xml">
-      <SubType>Designer</SubType>
-    </Content>
     <Content Include="Content\themes\base\accordion.css" />
     <Content Include="Content\themes\base\all.css" />
     <Content Include="Content\themes\base\autocomplete.css" />
@@ -222,17 +222,24 @@
     <Content Include="Global.asax" />
     <Content Include="fonts\YanoneKaffeesatz-Regular.eot" />
     <Content Include="fonts\YanoneKaffeesatz-Regular.ttf" />
+    <None Include="Properties\PublishProfiles\Blob.pubxml" />
     <None Include="Properties\PublishProfiles\Local.pubxml" />
     <Content Include="Images\arrows-white.png" />
     <Content Include="Images\back.png" />
+    <Content Include="Images\darthbusiness.png" />
     <Content Include="Images\grass.png" />
     <Content Include="Images\logo.png" />
     <Content Include="Images\photo.png" />
     <Content Include="Images\sun.png" />
     <None Include="Scripts\jquery-2.1.4.intellisense.js" />
+    <None Include="Scripts\jquery-1.9.1.intellisense.js" />
+    <Content Include="Scripts\jquery-1.9.1.js" />
+    <Content Include="Scripts\jquery-1.9.1.min.js" />
     <Content Include="Scripts\jquery-2.1.4.js" />
     <Content Include="Scripts\jquery-2.1.4.min.js" />
     <Content Include="Scripts\jquery-2.1.4.min.map" />
+    <Content Include="Scripts\jquery-ui-1.10.4.js" />
+    <Content Include="Scripts\jquery-ui-1.10.4.min.js" />
     <Content Include="Scripts\jquery-ui-1.11.4.js" />
     <Content Include="Scripts\jquery-ui-1.11.4.min.js" />
     <Content Include="Scripts\jquery.easing-sooper.js" />
@@ -281,14 +288,16 @@
     <Content Include="Views\Home\Oracle.cshtml" />
     <Content Include="Views\Home\Deploy.cshtml" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="App_Data\" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config">
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
   <PropertyGroup>
-    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">12.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -1,207 +1,127 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Security;
 using System.Management.Automation.Runspaces;
 using System.Management.Automation;
+using System.ServiceProcess;
+using DSTBuilder.Controllers;
 using DSTBuilder.Models;
-using System.Configuration;
 
 namespace DSTBuilder.Helpers
 {
     public class BatchProcess
     {
         #region Fields/Properties
+        private readonly XmlController _xml = new XmlController();
+        private readonly SendMail _sendMail = new SendMail();
         #endregion Fields/Properties
 
         #region Methods
 
-        
-        public bool RunProcess(string path)
+        public void RunPowerShellWithParameter(string scriptFile, string param)
         {
-            Process proc = new Process();
-            proc.StartInfo.FileName = path;
-            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.Verb = "runas";
+            Runspace runspace = null;
+            Pipeline pipeline = null;
 
-            proc.Start();
-
-            if (!proc.WaitForExit(1500000))
+            try
             {
-                proc.Kill();
-                return false;
+                RunspaceConfiguration runspaceConfiguration = RunspaceConfiguration.Create();
+                runspace = RunspaceFactory.CreateRunspace(runspaceConfiguration);
+                runspace.Open();
+                RunspaceInvoke scriptInvoker = new RunspaceInvoke(runspace);
+                pipeline = runspace.CreatePipeline();
+
+                String scriptfile = scriptFile;
+                Command myCommand = new Command(scriptfile, false);
+                //CommandParameter testParam = new CommandParameter(param);
+                //myCommand.Parameters.Add(testParam);
+                pipeline.Commands.Add(myCommand);
+                Collection<PSObject> psObjects;
+                psObjects = pipeline.Invoke();
+                runspace.Close();
             }
-
-            int exitCode = proc.ExitCode;
-            proc.Close();
-            if (exitCode == 0)
+            catch (Exception ex)
             {
-                return true;
+                throw new Exception("Powershell had an issue running.", ex);
             }
-            else
+            finally
             {
-                return false;
+                if (pipeline != null) pipeline.Dispose();
+                if (runspace != null) runspace.Dispose();
             }
         }
 
-        public bool RunProcess(string path, string commandline)
+        public void RunPowershell(string scriptFile, string baseDir)
         {
-            Process proc = new Process();
-            proc.StartInfo.FileName = path;
-            proc.StartInfo.Arguments = commandline;
-            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.Verb = "runas";
-            proc.Start();
-            if (!proc.WaitForExit(1500000))
-            {
-                proc.Kill();
-                return false;
-            }
-            int exitCode = proc.ExitCode;
-            proc.Close();
-            if (exitCode == 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public void RunPowershell(string scriptFile)
-        {            
             RunspaceConfiguration runspaceConfiguration = RunspaceConfiguration.Create();
 
             Runspace runspace = RunspaceFactory.CreateRunspace(runspaceConfiguration);
             runspace.Open();
 
-            RunspaceInvoke scriptInvoker = new RunspaceInvoke(runspace);
+            var scriptInvoker = new RunspaceInvoke(runspace);
             scriptInvoker.Invoke("Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted");
 
             Pipeline pipeline = runspace.CreatePipeline();
-            Command myCommand = new Command(scriptFile);
+            var myCommand = new Command(scriptFile);
             pipeline.Commands.Add(myCommand);
-            
             try
             {
                 pipeline.Invoke();
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception("Powershell had an issue running the script.", ex);
             }
 
             pipeline.Stop();
-            runspace.Close();           
+            runspace.Close();
 
         }
-        public void RunPowerShellScript(Services delegatorItem, bool stopService)
+
+        public bool CompileSolution(string solution, string sourceRepo)
         {
-            string shellUri = "http://schemas.microsoft.com/powershell/Microsoft.PowerShell";
-            var username = ConfigurationManager.AppSettings["filePathUsername"];
-            var password = ConfigurationManager.AppSettings["filePathPassword"];
-
-            SecureString secureString = new SecureString();
-            string myPassword = password;
-
-            foreach (char c in myPassword)
             {
-                secureString.AppendChar(c);
-            }
-            secureString.MakeReadOnly();
-
-            PSCredential remoteCredential = new PSCredential(username, secureString);
-
-            WSManConnectionInfo connectionInfo = new WSManConnectionInfo(false, delegatorItem.Server, 5985, "/wsman", shellUri, remoteCredential);
-            connectionInfo.AuthenticationMechanism = AuthenticationMechanism.Default;
-
-            using (Runspace runspace = RunspaceFactory.CreateRunspace(connectionInfo))
-            {
-                runspace.Open();
-
-                using (PowerShell powershell = PowerShell.Create())
+                string solutionFileName = string.Format("\"{0}\"", solution);
+                var startInfo = new ProcessStartInfo
                 {
-                    string passwordScript = "$password = ConvertTo-SecureString \"" + password + "\" -AsPlainText -Force";
-                    string credentialScript = "$cred= New-Object System.Management.Automation.PSCredential(\"" + delegatorItem.Server + @"\" + username + "\", $password)";
-                    string enterSessionScript = "Enter-PSSession " + delegatorItem.Server + " -credential $cred";
-                    string policy = "Set-ExecutionPolicy Unrestricted";
-                    string stopServiceScript = "Stop-Service -InputObject $(Get-Service -Computer " + delegatorItem.Server + " -Name " + "\"" + delegatorItem.ServiceName + "\"" + ")";
-                    string startServiceScript = "Start-Service -InputObject $(Get-Service -Computer " + delegatorItem.Server + " -Name " + "\"" + delegatorItem.ServiceName + "\"" + ")";
-                    
-                    powershell.Runspace = runspace;
-                    powershell.Commands.AddScript(passwordScript);
-                    powershell.Commands.AddScript(credentialScript);
-                    powershell.Commands.AddScript(enterSessionScript);
-                    powershell.Commands.AddScript(policy);
-                    if (stopService)
-                    {
-                        powershell.Commands.AddScript(stopServiceScript);
-
-                    }
-                    else
-                    {
-                        powershell.Commands.AddScript(startServiceScript);
-                    }
-                    powershell.Invoke();
-
-                }
-
-                // close the runspace
-                runspace.Close();
-            }
-        }
-
-        public bool BuildFiles(string build, string projectFile, string sourceRepo, string arguments, string logFileName)
-        {
-            try
-            {
-                string solutionFileName = string.Format("\"{0}\"", projectFile);
-
-                ProcessStartInfo pi = new ProcessStartInfo
-                {
-                    WorkingDirectory = build,
-                    FileName = "msbuild.exe",
-                    Arguments = solutionFileName + arguments + @" /p:Configuration=Release /p:VisualStudioVersion=12.0 /fl /flp:logfile=" + sourceRepo + logFileName + ".txt",
-
-                    UserName = ConfigurationManager.AppSettings["filePathUsername"],
-                    RedirectStandardOutput = true,
+                    CreateNoWindow = false,
+                    UseShellExecute = false,
+                    FileName = @"C:\Program Files (x86)\MSBuild\12.0\Bin\msbuild.exe",
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    Arguments =
+                        solutionFileName +
+                        @" /t:Clean;Rebuild /p:Configuration=Release /p:DeployOnBuild=True /p:VisualStudioVersion=12.0 /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:publishUrl=" +
+                        sourceRepo + @"/Application/Deployment /l:FileLogger,Microsoft.Build;verbosity=normal;logfile=" + sourceRepo +
+                        @"\Application\buildlog.txt"
                 };
 
-                var password = ConfigurationManager.AppSettings["filePathPassword"];
-                SecureString secureString = new SecureString();
-                string myPassword = password;
-
-                foreach (char c in myPassword)
+                try
                 {
-                    secureString.AppendChar(c);
+                    // Start the process with the info we specified.
+                    // Call WaitForExit and then the using-statement will close.
+                    using (var exeProcess = Process.Start(startInfo))
+                    {
+                        if (exeProcess != null) exeProcess.WaitForExit();
+                        //if (exeProcess != null)
+                        //{
+                        //    if (!exeProcess.WaitForExit()) //5 mins 1000 * 60 * 5
+                        //    {
+                        //        exeProcess.Kill();
+                        //        throw new Exception("Build process was killed.");
+                        //    }
+                        //}
+
+                    }
+                    return true;
                 }
-                secureString.MakeReadOnly();
-                pi.Password = secureString;
-                pi.UseShellExecute = false;
-                pi.CreateNoWindow = true;
-
-                var process = Process.Start(pi);
-                if (process == null)
+                catch (Exception)
+                {
                     return false;
-                process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-                var exitCode = process.ExitCode;
-
-                if (exitCode != 0)
-                    return false;
-
-                return true;
-            }
-            catch (Exception)
-            {
-
-                throw;
+                }
             }
         }
 
-        public int ExecuteCommand(string command, int timeout)
+        public static int ExecuteCommand(string command, int timeout)
         {
             var processInfo = new ProcessStartInfo("cmd.exe", "/C " + command)
             {
@@ -217,7 +137,53 @@ namespace DSTBuilder.Helpers
             return exitCode;
         }
 
-        
+        public void ManageDstService(string product, string release, bool serviceState)
+        {
+            var serviceItem = _xml.GetServices(product, release);
+            foreach (var services in serviceItem)
+            {
+                if (services == null) continue;
+                try
+                {
+                    ServiceAction(services, serviceState);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("The service has a problem.", ex);
+                }
+            }
+        }
+
+        public void ServiceAction(Services services, bool serviceStatus)
+        {
+            var sc = new ServiceController
+            {
+                ServiceName = services.ServiceName,
+                MachineName = services.Server
+            };
+            const int timeout = 3000;
+
+            try
+            {
+                if (serviceStatus == false)
+                {
+                    if (sc.Status == ServiceControllerStatus.Running) return;
+                    sc.Start();
+                    sc.WaitForStatus(ServiceControllerStatus.Running, new TimeSpan(0, timeout, 0));
+                }
+                else
+                {
+                    if (sc.Status == ServiceControllerStatus.Stopped) return;
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped, new TimeSpan(0, timeout, 0));
+                }
+            }
+            catch (InvalidOperationException io)
+            {
+                _sendMail.EmailTammyOnly("Service Failure", io.Message);
+                throw new Exception("The service has a problem.", io);
+            }
+        }
 
         #endregion Methods
     }

@@ -91,8 +91,8 @@
                 document.getElementById('v1').value = valsplit[0];
                 document.getElementById('v2').value = valsplit[1];
                 document.getElementById('v3').value = valsplit[2];
-                document.getElementById('spinner').value = valsplit[3];
-                document.getElementById('lastbuild').innerHTML = "<h4>" + lastbuild + "</h4>"
+                document.getElementById('spinner').value = parseInt(valsplit[3]) + 1;
+                document.getElementById('lastbuildversion').innerHTML = "<h2>" + x + "<br/>" + lastbuild + "</h2>";
             }
     });
     
@@ -128,50 +128,52 @@
 
              
     <div id="site_content">
-        <form name="builder" action="#" method="post">              
-        <div id="sidebar_container">
-                    <div class="sidebar">
-                        <h4>Build Status</h4>
-                        <h5><span id="message"></span></h5>
-                    </div>
-                    <div class="sidebar">
-                        <h4>Last Build Stats</h4>
-                        <p><span id="lastbuild"></span></p>
-                    </div>                    
+        <form name="builder" action="#" method="post">
+            <div id="sidebar_container">
+                <div class="sidebar">
+                    <h4>Build Status</h4>
+                    <span style="display: block; width: 300px; word-wrap: break-word;" id="message"></span>
                 </div>
-             <div id="center">
-                 <table>
-                     <tr>
-                         <td>Release</td>
-                         <td><select id="DLRelease" onchange="GetVersionFromRelease()"></select></td>
-                     </tr>
-                     <tr>
-                         <td>Version</td>
-                         <td>
-                             <input id="v1" type="text" style="width:25px" disabled ="disabled" />
-                             <input id="v2" type="text" style="width:25px" disabled ="disabled" />
-                             <input id="v3" type="text" style="width:25px" disabled ="disabled" />
-                             <input style="width:25px" id="spinner" name="name" />
-                         </td>
-                     </tr>
-                      <tr>
-                         <td>Send Notification and Delay?</td>
-                         <td><input class="checkbox" type="checkbox" id="sendNotification" checked /></td>
-                     </tr>
-                     <tr>
-                         <td>Minutes</td>
-                         <td><input style="width:25px" id="minutes" value="1"/></td>
-                     </tr>
-                     <tr>
-                         <td colspan="2"><b>This will build both the binaries and generate a master_deploy for oracle.</b></td>                         
-                     </tr> 
-                 </table>        
+                <div class="sidebar">
+                    <h4>Last Build Stats</h4>
+                    <p>
+                        <span id="lastbuildversion"></span>
+                    </p>
+                </div>
             </div>
-             <div class="form_settings">
-                 <input id="Button1" class="submit" type="button" value="Start Build" onclick="StartBuild()" />
-             </div>    
-          </form>
-        </div>
+                <div id="center">
+                    <table>
+                        <tr>
+                            <td>Release</td>
+                            <td><select id="DLRelease" onchange="GetVersionFromRelease()"></select></td>
+                        </tr>
+                        <tr>
+                            <td>Version</td>
+                            <td>
+                                <input id="v1" type="text" style="width: 25px" disabled="disabled" />
+                                <input id="v2" type="text" style="width: 25px" disabled="disabled" />
+                                <input id="v3" type="text" style="width: 25px" disabled="disabled" />
+                                <input style="width: 25px" id="spinner" name="name" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Send Notification and Delay?</td>
+                            <td><input class="checkbox" type="checkbox" id="sendNotification" checked /></td>
+                        </tr>
+                        <tr>
+                            <td>Minutes</td>
+                            <td><input style="width: 25px" id="minutes" value="1" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2"><b>This will build both the binaries and generate a master_deploy for oracle.</b></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="form_settings">
+                    <input id="Button1" class="submit" type="button" value="Start Build" onclick="StartBuild()" />
+                </div>
+</form>
+</div>
 
 <script>
     //jquery

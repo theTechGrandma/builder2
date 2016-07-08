@@ -1,241 +1,108 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using DSTBuilder.Helpers;
 using DSTBuilder.Controllers;
 using Microsoft.VisualBasic.FileIO;
-using Mercurial;
-using System.Text;
-using System.Collections;
-using System.ServiceProcess;
-using Microsoft.Build.Execution;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Evaluation;
-using System.Threading.Tasks;
-
 
 namespace DSTBuilder.Models
 {
     public class BuildRepository
     {
         #region Properties
-        private readonly Log _buildLog = new Log();
-        public Log BuildLog
-        {
-            get { return _buildLog; }
-        }
 
-        public readonly Files _files = new Files();
-        public Files Files
-        {
-            get { return _files; }
-        }
+        private readonly Log _buildLog = new Log();
+
+        public readonly Files Files = new Files();
 
         private readonly BatchProcess _batchProcess = new BatchProcess();
-        public BatchProcess BatchProcess
-        {
-            get { return _batchProcess; }
-        }
 
         private readonly XmlController _xml = new XmlController();
-        public XmlController Xml
-        {
-            get { return _xml; }
-        }
 
         private readonly SendMail _sendMail = new SendMail();
-        public SendMail SendMail
-        {
-            get { return _sendMail; }
-        }
 
-        private string _sourceRepo;
-        public string SourceRepo
-        {
-            get { return _sourceRepo; }
-            set { _sourceRepo = value; }
-        }
+        private readonly Mercurial _mercurial = new Mercurial();
 
-        private string _product;
+        private string _localRepo;
+
         public string Product
         {
             get { return _product; }
             set { _product = value; }
         }
 
-        private string _release;
-        public string Release
-        {
-            get { return _release; }
-            set { _release = value; }
-        }
-
         private string _remoteRepo;
-        public string RemoteRepo
-        {
-            get { return _remoteRepo; }
-            set { _remoteRepo = value; }
-        }
 
-        private string _helpRepo;
-        public string HelpRepo
-        {
-            get { return _helpRepo; }
-            set { _helpRepo = value; }
-        }
+        private string _remoteHelpRepo;
 
-        private string _siteUrl;
-        public string SiteUrl
-        {
-            get { return _siteUrl; }
-            set { _siteUrl = value; }
-        }
-
-        private string _solutionPath;
-        public string SolutionPath
-        {
-            get { return _solutionPath; }
-            set { _solutionPath = value; }
-        }
+        private string _localHelpRepo;
 
         private string _buildRepo;
-        public string BuildRepo
-        {
-            get { return _buildRepo; }
-            set { _buildRepo = value; }
-        }
 
         private string _lastBuildVersion;
-        public string LastBuildVersion
-        {
-            get { return _lastBuildVersion; }
-            set { _lastBuildVersion = value; }
-        }
 
         private string _masterDeployPath;
-        public string MasterDeployPath
-        {
-            get { return _masterDeployPath; }
-            set { _masterDeployPath = value; }
-        }
 
         private string _deploymentLocation;
-        public string DeploymentLocation
-        {
-            get { return _deploymentLocation; }
-            set { _deploymentLocation = value; }
-        }
 
         private string _workerReleaseFiles;
-        public string WorkerReleaseFiles
-        {
-            get { return _workerReleaseFiles; }
-            set { _workerReleaseFiles = value; }
-        }
-
-        private string _changeLog;
-        public string ChangeLog
-        {
-            get { return _changeLog; }
-            set { _changeLog = value; }
-        }
 
         private string _solutionFile;
-        public string SolutionFile
-        {
-            get { return _solutionFile; }
-            set { _solutionFile = value; }
-        }
 
-        private string _version;
-        public string Version
-        {
-            get { return _version; }
-            set { _version = value; }
-        }
+        private string _release;
 
         private string[] _fullVersion;
-        public string[] FullVersion
-        {
-            get { return _fullVersion; }
-            set { _fullVersion = value; }
-        }
 
         private string _stagingPath;
-        public string StagingPath
-        {
-            get { return _stagingPath; }
-            set { _stagingPath = value; }
-        }
-
-        private string ChangeSet { get; set; }
-        private string EmailMessage { get; set; }
-
-        private readonly string _buildEnv = Environment.CurrentDirectory = Environment.GetEnvironmentVariable("Build");
-        public string BuildEnv
-        {
-            get { return _buildEnv; }
-        }
-
-        #endregion
+        private string _product;
+        private string _version;
+        private string _currentBuildVersion;
 
         public Log GetStatus()
         {
             return _buildLog;
         }
 
+        #endregion
+
         #region PushToLogsa
-        public bool PushCodeToLogsa(string product, string release, string version)
+
+        public void PushCodeToLogsa(string product, string release, string version)
         {
             try
             {
                 _buildLog.Message = "Deploying " + version + " - Starting deployment tasks";
-                //Task<bool> tskGetLocalParameters =
-                //      Task.Factory.StartNew<bool>(() => GetBuildPaths(product, release));
+                _product = product;
+                _version = version;
+                _release = release;
 
                 GetBuildPaths();
+                GetVersionInfo();
 
                 _buildLog.Message = "Deploying " + version + " - Removing old files.";
 
-                _files.DeleteDir(_deploymentLocation);
-
-                if (_lastBuildVersion != version)
-                {
-                    _buildLog.Message = "Deploying " + version + " - Cloning to revision.";
-                    CloneToRevision(_remoteRepo, version);
-                    _sourceRepo = @"C:\Mercurial\DSTSM" + version;
-                }
+                Files.DeleteDir(_deploymentLocation);
 
                 _buildLog.Message = "Deploying " + version + " - Checking folders exist";
-                _files.CheckDirExists(_deploymentLocation + @"WHS");
-                _files.CheckDirExists(_deploymentLocation + @"Web");
-                _files.CheckDirExists(_deploymentLocation + @"Web\Help");
-                _files.CheckDirExists(_deploymentLocation + @"Configs");
-                _files.CheckDirExists(_deploymentLocation + @"Scripts");
-                _files.CheckDirExists(_deploymentLocation + @"OracleCode");
+                Files.CheckDirExists(_deploymentLocation + @"WHS");
+                Files.CheckDirExists(_deploymentLocation + @"Web");
+                Files.CheckDirExists(_deploymentLocation + @"Configs");
+                Files.CheckDirExists(_deploymentLocation + @"Scripts");
+                Files.CheckDirExists(_deploymentLocation + @"OracleCode");
 
                 _buildLog.Message = "Deploying " + version + " - Copying over files for zipping.";
-                IEnumerable<Server> serverList = _xml.GetServers(product, release);
-                foreach (Server server in serverList)
-                {
-                    IEnumerable<Location> locationItem = _xml.GetLocations(product, release, server.Name);
-                    foreach (Location location in locationItem)
-                    {
-                        if (server.Name == "Help")
-                        {
-                            FileSystem.CopyDirectory(location.Source, _deploymentLocation + @"Web\Help", true);
-                        }
-                    }
-                }
 
-                FileSystem.CopyDirectory(_sourceRepo + @"Application\Tools\CmdDirectoryCompare", _deploymentLocation + @"Scripts", true);
-                FileSystem.CopyDirectory(_sourceRepo + @"Deployment\Logsa", _deploymentLocation + @"Scripts", true);
-                FileSystem.CopyDirectory(_sourceRepo + @"Database\LogsaSubversion", _deploymentLocation + @"OracleCode", true);
+                FileSystem.CopyDirectory(_localRepo + @"\\Deployment\Logsa", _deploymentLocation + @"Scripts", true);
+                FileSystem.CopyDirectory(_localRepo + @"\\Database\LogsaSubversion", _deploymentLocation + @"OracleCode",
+                    true);
 
-                FileSystem.CopyDirectory(_buildRepo + @"Application\" + version + @"\", _deploymentLocation + @"Web", true);
-                FileSystem.CopyDirectory(_buildRepo + @"WHS\" + version + @"\", _deploymentLocation + @"WHS", true);
+                FileSystem.CopyDirectory(_stagingPath + @"Application\Application\", _deploymentLocation + @"Web",
+                    true);
+                FileSystem.CopyDirectory(_stagingPath + @"WHS\Application\", _deploymentLocation + @"WHS", true);
 
                 _buildLog.Message = "Deploying " + version + " - Moving config files.";
                 File.Move(_deploymentLocation + @"Web\Web.config", _deploymentLocation + @"Configs\Web.config");
@@ -244,49 +111,54 @@ namespace DSTBuilder.Models
                 File.Move(_deploymentLocation + @"WHS\nlog.config", _deploymentLocation + @"Configs\whs-nlog.config");
 
                 _buildLog.Message = "Zipping them up.";
-                _batchProcess.ExecuteCommand(@"7z.exe a " + _deploymentLocation + @"DSTSM" + version + @".zip " + _deploymentLocation + "*.* -r -x!*.zip", 300000);
-
-                _buildLog.Message = "Deploying " + version + " - Transfer in progress.";
-                _batchProcess.ExecuteCommand(@"CoreFTP.exe -s -O -site Egnyte -u " + _deploymentLocation + @"DSTSM" + version + @".zip -p /Shared/promodel/users/zAnnArbor/", 600000);
+                BatchProcess.ExecuteCommand(@"7z.exe a " + _deploymentLocation + @"DSTSM" + version + @".zip " + _deploymentLocation + "*.* -r -x!*.zip", 300000);
 
                 _buildLog.Message = "Deploying " + version + " - All done!";
-                return true;
+                
             }
 
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _buildLog.Message = "Egynte deployment failed " + " - " + ex.ToString();
-                return false;
+                _buildLog.Message = "Deployment failed " + " - " + ex;
             }
+
+            BuildLogNull();
         }
+
         #endregion
 
         #region MasterDeploy
-        public bool GenerateMasterDeploy(string product, string release, string fromVersion, string toVersion)
+
+        public void GenerateMasterDeploy(string product, string release, string fromVersion, string toVersion, bool pullForOracle)
         {
             try
             {
-                IEnumerable<Versions> version = _xml.GetVersion(product, release);
-                //Task<bool> tskGetLocalParameters =
-                //        Task.Factory.StartNew<bool>(() => GetBuildPaths(product, release));
+                _buildLog.Message = "Oracle - Generating master deploy";
 
-                GetBuildPaths();
+                if (pullForOracle)
+                {
+                    _product = product;
+                    _release = release;
 
-                //add new version method here
-
-                _buildLog.Message = "Oracle Only - Generating master deploy";
-
-                Pull(_sourceRepo, _deploymentLocation);
+                    GetBuildPaths();
+                    GetVersionInfo();
+                    _mercurial.Pull(_localRepo, _remoteRepo);
+                }
 
                 //deletes working files in both the original DOT folder and new working folder for oracle only builds.
-                _files.DeleteFiles(_sourceRepo + @"Application\Installation Scripts\DOT", "*.txt");
-                _files.DeleteFiles(_masterDeployPath, "*.txt");
+                if (!Files.DeleteFiles(_localRepo + @"\Application\Installation Scripts\DOT", "*.txt"))
+                    return;
 
-                //Status(_sourceRepo + @"Application\", fromVersion, toVersion);
-                _batchProcess.RunPowershell(_sourceRepo + @"Application\Installation Scripts\DOT\DOTByVersion.ps1");
+                if (!Files.DeleteFiles(_masterDeployPath, "*.txt"))
+                    return;
 
-                _buildLog.Message = "Oracle Only - Emailing master deploy files";
+                _mercurial.Status(fromVersion, toVersion, _localRepo);
 
+                _batchProcess.RunPowershell(_localRepo + @"\Application\Installation Scripts\DOT\DOTByVersion.ps1 ", _localRepo);
+
+                _buildLog.Message = "Oracle - Emailing master deploy files";
+
+                //looks for evidence of script files that were generated.
                 List<string> attachments = new List<string>();
                 if (File.Exists(_masterDeployPath + "master_deploySm.sql"))
                 {
@@ -307,582 +179,325 @@ namespace DSTBuilder.Models
 
                 if (attachments.Count != 0)
                 {
-                    _sendMail.EmailSender(_xml.GetOracleEmailGroup(product), "DST Master Deploy", "Master deploy scripts attached for versions " + fromVersion + " to " + toVersion, attachments.ToArray());
+                    _sendMail.EmailSender(_xml.GetOracleEmailGroup(product), "DST Master Deploy",
+                        "Master deploy scripts attached for versions " + fromVersion + " to " + toVersion,
+                        attachments.ToArray());
                 }
                 else
                 {
-                    _sendMail.EmailSender(_xml.GetOracleEmailGroup(product), "No oracle to deploy.", "No master deploy scripts for versions " + fromVersion + " to " + toVersion);
+                    _sendMail.EmailSender(_xml.GetOracleEmailGroup(product), "No oracle to deploy.",
+                        "No master deploy scripts for versions " + fromVersion + " to " + toVersion);
                 }
 
                 _buildLog.Message = "Oracle Only - Done! Damn that was fast!";
 
-                return true;
+                BuildLogNull();
             }
 
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _buildLog.Message = "Oracle Only - Generate master deploy failed " + " - " + ex.ToString();
-                return false;
+                _buildLog.Message = "Oracle Only - Generate master deploy failed " + " - " + ex;
+                // Send email
+                _sendMail.EmailSender(_xml.GetOracleEmailGroup("DST"), "Oracle deployment failure",
+                    "The master_deployNew could not be created because " + ex.Message + ". The build is continuing.");
+
+                BuildLogNull();
             }
 
         }
+
         #endregion
 
-        public async Task<bool> StartBuild(string product, string release, string version, bool sendNotification, int minutes)
+        #region Build
+
+        public void StartBuild(string product, string release, string version, bool sendNotification, int minutes)
         {
             try
             {
-                while (true)
+                _product = product;
+                _release = release;
+                _version = version;
+
+                //send Email notification
+                if (sendNotification)
+                    SendNotification(_version, minutes);
+
+                _buildLog.Message = "Building " + _version + " - Starting build";
+
+                if (GetBuildPaths())
+                    return;
+
+                if (GetVersionInfo())
+                    return;
+
+                //pulling source
+                _buildLog.Message = "Building " + _version + " - Pulling from remote repos.";
+                _mercurial.Pull(_localRepo, _remoteRepo);
+
+                _mercurial.PullByBranch(_localHelpRepo, _remoteHelpRepo, _currentBuildVersion);
+
+                _mercurial.CheckForMultipleHeads(_localRepo);
+
+                _buildLog.Message = "Building " + _version + " - Updating assembly info.";
+                foreach (string assemblyInfo in File.ReadAllLines(_localRepo + "\\Application\\Installation Scripts\\AssemblyInfo - Product.txt"))
                 {
-                    _product = product;
-                    _release = release;
+                    Files.AssemblyInfoChanger(assemblyInfo, _version);
+                }
 
-                    _buildLog.Message = "Building " + version + " - Starting build";
+                //build solution file
+                _buildLog.Message = "Building " + _version + " - Compiling solution file";
 
-                    GetBuildPaths();
+                //build the solution
+                if (!_batchProcess.CompileSolution(_solutionFile, _localRepo))
+                    return;
 
-                    GetVersionInfo();
+                _buildLog.Message = "Building " + _version + " - Looking for errors.";
+                if (!Files.CheckProcessLog(_localRepo + @"\Application\buildLog.txt"))
+                    return;
 
-                    //if (sendNotification == true)
-                    //  SendNotification(product, release, version, minutes, "BINARY AND ORACLE");
+                _buildLog.Message = "Building " + _version + " - Pushing assembly updates.";
+                _mercurial.CommitAndPushTag(_localRepo, _remoteRepo, "Assembly commit", _version);
+                _xml.SetProductVersion(_product, _release, _version);
 
-                    //pulling source
-                    _buildLog.Message = "Building " + version + " - Pulling from remote repo.";
-                    //Pull(_sourceRepo, _remoteRepo);
+                //Sets bool to false and then calls the oracle deploy process without doing another source pull.
+                _buildLog.Message = "Building " + version + " - Doing oracle stuff.";
+                GenerateMasterDeploy(_product, _release, _lastBuildVersion, _version, false);
 
-                    //pulling help files
-                    //Pull(_sourceRepo + @"DSTHelp", _helpRepo);
+                _buildLog.Message = "Building " + _version + " - Copying crap to staging areas.";
 
-                    Task<bool> tskCheckForMultipleHeads =
-                        Task.Factory.StartNew<bool>(CheckForMultipleHeads);
+                // copy xap to web folder
+                Files.CopyXap(_localRepo + @"\Application\App\Bin\Release",
+                    _localRepo + @"\Application\Web\ClientBin");
 
-                    //foreach (string assemblyInfo in File.ReadAllLines(local + "Installation Scripts\\AssemblyInfo - Product.txt"))
-                    //{
-                    //    _files.AssemblyInfoChanger(assemblyInfo, version);
-                    //}
+                Files.CheckDirExists(_buildRepo);
 
-                    //Log(_buildRepo, _lastBuildVersion);
+                //Check Staging folders exist
+                Files.CheckDirExists(_stagingPath + @"Application\Application");
+                Files.CheckDirExists(_stagingPath + @"Application\Application\Help");
+                Files.CheckDirExists(_stagingPath + @"WHS\Application");
 
-                    //CommitAndPushTag(_sourceRepo, _remoteRepo, "Assembly commit", version);
+                //Delete files from the Application
+                Files.DeleteDir(_stagingPath + @"Application\Application\");
+                Files.DeleteDir(_stagingPath + @"WHS\Application\");
 
-                    //build solution file
-                    _buildLog.Message = "Building " + version + " - Compiling solution file";
-                    //_batchProcess.BuildFiles(_buildEnv, _solutionFile, _sourceRepo, null, "solutionLog");
+                //Copy Compiled code to local repo.
+                _buildLog.Message = "Building " + version + " - Copying compiled files";
+                FileSystem.CopyDirectory(_localRepo + @"\Application\Deployment",
+                    _stagingPath + @"Application\Application\", true);
 
-                    // copy xap to web folder
-                    //File.Replace(_sourceRepo + @"Application\App\Bin\Release\DSTM.xap", _sourceRepo + @"Application\Web\ClientBin\DSTM.xap", string.Format("DSTM-{0:yyyy-MM-dd_hh-mm-ss-tt}.xap", DateTime.Now));
+                //Copy Help to Staging Path
+                _buildLog.Message = "Building " + _version + " - Copying help files to staging path";
+                FileSystem.CopyDirectory(_localHelpRepo + @"\Help\Output\Output\UXDEXP5\",
+                    _stagingPath + @"Application\Application\Help\", true);
 
-                    //build web project and collect all deployment files into one folder
-                    var webparameters =
-                    @" /t:Build;PipelinePreDeployCopyAllFilesToOneFolder /t:TransformWebConfig /p:AutoParameterizationWebConfigConnectionStrings=False;_PackageTempDir=" +
-                    _sourceRepo + @"Deployment\Application";
+                //Copy the Help PDF
+                Files.CopyPdf(_localHelpRepo + @"\Help\Output\Output\DST-SM User Guide\",
+                    _stagingPath + @"Application\Application\Help\");
 
-                    //build web project
-                    _buildLog.Message = "Building " + version + " - Building web project.";
-                   // _batchProcess.BuildFiles(_buildEnv, _sourceRepo + @"Application\Web\DSTM.Web.csproj", _sourceRepo, webparameters, "webLog");
+                ////WHS
+                _buildLog.Message = "Building " + _version + " - Copying WHS files";
+                Files.CopyFiles(_workerReleaseFiles, _stagingPath + @"WHS\Application\");
 
-                    //build Worker
-                    _buildLog.Message = "Building " + version + " - Building worker project.";
-                    //_batchProcess.BuildFiles(_buildEnv, _sourceRepo + @"Application\Services.Windows\AdvancedWorker\AdvancedWorker.csproj", _sourceRepo, null, "workerLog");
+                //Stop each Service
+                _buildLog.Message = "Building " + _version + " - Stopping Services";
 
-                    //ManageDstService(true);
+                _batchProcess.ManageDstService(_product,release,true);
 
-                    _files.CheckDirExists(_buildRepo);
-
-                    //Check Staging folders exist
-                    _files.CheckDirExists(_stagingPath + @"Application\" + version + @"\");
-                    _files.CheckDirExists(_stagingPath + @"WHS\" + version + @"\");
-
-                    _files.CheckDirExists(_stagingPath + @"Application\Application");
-                    _files.CheckDirExists(_stagingPath + @"WHS\Application");
-
-                    //Delete files from the Application and from Application\Release
-                    _files.DeleteDir(_stagingPath + @"Application\" + version + @"\");
-                    _files.DeleteDir(_stagingPath + @"WHS\" + version + @"\");
-
-                    _files.DeleteDir(_stagingPath + @"Application\Application\");
-                    _files.DeleteDir(_stagingPath + @"WHS\Application\");
-
-                    //Copy Compiled code to local repo in both a version folder and main folder.
-                    _buildLog.Message = "Building " + version + " - Copying compiled files";
-                    FileSystem.CopyDirectory(_sourceRepo + @"Application\Deployment", _stagingPath + @"Application\Application\", true);
-                    FileSystem.CopyDirectory(_sourceRepo + @"Application\Deployment", _stagingPath + @"Application\" + version + "\\", true);
-
-                    //Copy Help Files
-                    FileSystem.CopyDirectory(_sourceRepo + @"DSTHelp", _stagingPath + @"Application\Application\", true);
-                    FileSystem.CopyDirectory(_sourceRepo + @"DSTHelp", _stagingPath + @"Application\" + version + "\\", true);
-
-                    ////WHS
-                    _buildLog.Message = "Building " + version + " - Copying WHS files";
-
-                    await
-                        _files.CopyFileAsync(_workerReleaseFiles, _stagingPath + @"WHS\Application\", "*.exe*");
-                    
-                        //_files.CopyFiles(_workerReleaseFiles, _stagingPath + @"WHS\Application\", "*.exe*");
-                    
-                        //_files.CopyFiles(_workerReleaseFiles, _stagingPath + @"WHS\Application\", "*.dll");
-                    
-                        //_files.CopyFiles(_workerReleaseFiles, _stagingPath + @"WHS\Application\", "*.config");
-                    
-                        //_files.CopyFiles(_workerReleaseFiles, _stagingPath + @"WHS\Application\", "*.bat");
-
-                    FileSystem.CopyDirectory(_stagingPath + @"WHS\Application\", _stagingPath + @"WHS\" + version + "\\", true);
-
-                    //Stop each Service
-                    _buildLog.Message = "Building " + version + " - Stopping Services";
-
-
-                    //Delete all files from all Test locations - Then copy in the new stuff
-                    IEnumerable<Server> serverList = _xml.GetServers(_product, _release);
-                    foreach (Server server in serverList)
+                //Delete all files from all Test locations - Then copy in the new stuff
+                IEnumerable<Server> serverList = _xml.GetServers(_product, _release);
+                foreach (Server server in serverList)
+                {
+                    string serverName = server.Name;
+                    IEnumerable<Location> locationItem = _xml.GetLocations(_product, _release, server.Name);
+                    foreach (Location location in locationItem)
                     {
-                        string serverIP = server.IP;
-                        IEnumerable<Location> locationItem = _xml.GetLocations(_product, _release, server.Name);
-                        foreach (Location location in locationItem)
+                        string fullPath = @"\\" + serverName + location.SharePath;
+                        _buildLog.Message = "Building " + _version + " - Deleting " + location.SharePath;
+                        Files.DeleteDir(fullPath);
+
+                        _buildLog.Message = "Building " + _version + " - Copying " + location.Source + " to " + location.SharePath;
+                        FileSystem.CopyDirectory(_stagingPath + location.Source, fullPath, true);
+
+                        if (location.Source == @"Application\Application")
                         {
-                            string fullPath = @"\\" + serverIP + location.Path;
-                            _buildLog.Message = "Building " + version + " - Deleting " + location.Path;
-                            _files.DeleteDir(fullPath);
-                            
-                            _buildLog.Message = "Building " + version + " - Copying " + location.Source + " to " + fullPath;
-                            FileSystem.CopyDirectory(_stagingPath + location.Source, fullPath, true);
+                            _buildLog.Message = "Building " + _version + " - Modifying webserver key";
+                            _xml.ChangeXMLConfigs(fullPath + @"\web.config", server.Name,
+                                @"/configuration/appSettings/add", "WebServerName", "key");
+                        }
 
-                            if (location.Source == @"Application\Application")
-                            {
-                                _buildLog.Message = "Building " + version + " - Modifying webserver key";
-                                _xml.ChangeXMLConfigs(fullPath + @"\web.config", server.Name, @"/configuration/appSettings/add", "WebServerName", "key");
-                            }
-
-                            if (location.Source.Contains("WHS"))
-                            {
-                                _buildLog.Message = "Building " + version + " - Creating WHS unique name";
-                                _xml.ChangeXMLConfigs(fullPath + @"\AdvWorker.exe.config", location.Name, @"/configuration/appSettings/add", "WorkerUniqueName", "key");
-                            }
+                        if (location.Source.Contains("WHS"))
+                        {
+                            _buildLog.Message = "Building " + _version + " - Creating WHS unique name";
+                            _xml.ChangeXMLConfigs(fullPath + @"\AdvWorker.exe.config", location.Name,
+                                @"/configuration/appSettings/add", "WorkerUniqueName", "key");
                         }
                     }
-
-                    //Start the services back up
-                    _buildLog.Message = "Building " + version + " - Starting services backup - Almost there!";
-                    ManageDstService(false);
-                    _xml.SetProductVersion(_product, _release, version);
-
-                    _buildLog.Message = "Binaries/Oracle - Building " + version + " - Success!";
-                    _sendMail.EmailSender(_xml.GetEmailGroup(product), _product + "-" + version,
-                        "Deploy  - Build and deploy is completed! " + EmailMessage);
-                    return true;
                 }
+
+                //Start the services back up
+                _buildLog.Message = "Building " + _version + " - Starting services backup - Almost there!";
+
+                _batchProcess.ManageDstService(_product, release, false);
+
+                _buildLog.Message = "Binaries/Oracle - Building " + _version + " - Success!";
+                _sendMail.EmailSender(_xml.GetEmailGroup(product), _product + "-" + _version,
+                    "Deploy  - Build and deploy is completed! " + _mercurial.Log(_localRepo, _lastBuildVersion));
+
+                BuildLogNull();
             }
 
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _buildLog.Message = "Building " + version + " - " + ex.ToString();
-                _sendMail.EmailSender(_xml.GetEmailGroup(_product), _product + " " + version + " build has failed!", _buildLog.Message);
-                return false;
+                _buildLog.Message = "Building " + _version + " - " + ex;
+                _sendMail.EmailSender(_xml.GetEmailGroup(Product), Product + " " + _version + " build has failed!",
+                   ex.Message, _localRepo + @"\Application\buildlog.txt");
+
+                BuildLogNull();
             }
         }
+
+        #endregion
 
         #region Helper Methods
-
-        #region Mercurial Helpers
-
-        private bool CheckForMultipleHeads()
-        {
-            var repo = new Repository(_sourceRepo);
-            Changeset[] log = repo.Heads().ToArray();
-
-            if (log.Length > 1)
-            {
-                _sendMail.EmailSender(_xml.GetEmailGroup("DST"), "DST build failure",
-                    "Multiple heads detected. Build halted. Please contact someone who can fix it.");
-                return false;
-            }
-
-            return true;
-        }
-
-        private void Status(string fromVersion, string toVersion)
-        {
-            //method is currently not being used.
-            try
-            {
-                var repo = new Repository(_sourceRepo);
-                StringBuilder builder = new StringBuilder();
-
-                string filename = _sourceRepo + "Installation Scripts\\DOT\\IncomingOracleChanges.txt";
-                using (StreamWriter writeFile = new StreamWriter(filename, true))
-                {
-                    FileStatus[] status = repo.Status(new StatusCommand().WithAdditionalArgument("--rev " + fromVersion + ":" + toVersion + " --modified --added")).ToArray();
-                    foreach (FileStatus changes in status)
-                    {
-                        if (changes.State.ToString() != "Removed")
-                        {
-                            builder.Append(changes.Path);
-                            builder.AppendLine();
-                        }
-                    }
-                    writeFile.Write(builder);
-                }
-            }
-            catch (MercurialExecutionException ex)
-            {
-                // Send email
-                _sendMail.EmailSender(_xml.GetOracleEmailGroup("DST"), "Oracle deployment failure", "The master_deployNew could not be created because " + ex.Message + ". The build is continuing.");
-            }
-        }
-
-        private void Log(string local, string lastBuildVersion)
-        {
-            try
-            {
-                var repo = new Repository(local);
-                StringBuilder builder = new StringBuilder();
-                Changeset[] status = repo.Log(new LogCommand().WithAdditionalArgument("--rev " + lastBuildVersion + ":tip")).ToArray();
-                foreach (Changeset changes in status)
-                {
-                    builder.AppendLine();
-                    builder.Append(changes.AuthorName);
-                    builder.Append('-');
-                    builder.Append(changes.CommitMessage);
-                    builder.Append('-');
-                    builder.Append(changes.Revision);
-                    builder.AppendLine();
-                }
-
-                EmailMessage = builder.ToString();
-            }
-            catch (MercurialExecutionException ex)
-            {
-                // Swallow this one as it will throw an exception if there is nothing to commit.
-                _buildLog.Message = ex.ToString();
-                //var exitcode = ex.ExitCode.ToString();
-            }
-        }
-
-        private static void Pull(string local, string remote)
-        {
-            var repo = new Repository(local);
-
-            repo.Pull(remote, new PullCommand
-            {
-                Update = true,
-            });
-
-        }
-
-        private void CloneToRevision(string remote, string version)
-        {
-            var repoPath = @"C:\Mercurial\DSTSM\" + version;
-
-            _files.DeleteDir(repoPath);
-            Directory.CreateDirectory(repoPath);
-            var repo = new Repository(repoPath);
-            repo.Clone(remote,
-                new CloneCommand()
-                    .WithUpdateToRevision(version)
-                    .WithTimeout(60000));
-        }
-
-        private void CommitAndPushTag(string local, string remote, string message, string version)
-        {
-
-            var repo = new Repository(local);
-
-            try
-            {
-                repo.Commit(new CommitCommand().WithMessage(message).WithAddRemove(true));
-                repo.Tag(version);
-
-                repo.Push(remote, new PushCommand
-                {
-                    AllowCreatingNewBranch = false,
-                    Force = false,
-                });
-            }
-            catch (MercurialExecutionException ex)
-            {
-                // Swallow this one as it will throw an exception if there is nothing to commit.
-                _buildLog.Message = ex.ToString();
-                //var exitcode = ex.ExitCode.ToString();
-            }
-        }
-
-        private void CommitAndPush(string local, string remote, string message)
-        {
-            var repo = new Repository(local);
-
-            try
-            {
-                repo.Commit(new CommitCommand().WithMessage(message).WithAddRemove(true));
-                repo.Push(remote, new PushCommand
-                {
-                    AllowCreatingNewBranch = false,
-                    Force = false,
-                });
-            }
-            catch (MercurialExecutionException ex)
-            {
-                // Swallow this one as it will throw an exception if there is nothing to commit.
-                _buildLog.Message = ex.ToString();
-                //var exitcode = ex.ExitCode.ToString();
-            }
-        }
-
-        private void GetIncomingChanges(string local, string remote)
-        {
-            var repo = new Repository(local);
-            StringBuilder builder = new StringBuilder();
-
-            IEnumerable<Changeset> changeList = repo.Incoming(new IncomingCommand().Source = remote);
-            foreach (Changeset changes in changeList)
-            {
-                builder.Append(changes.CommitMessage);
-                builder.Append('-');
-                builder.Append(changes.AuthorName);
-                builder.AppendLine();
-                //ChangeSet = changes.ToString();                
-            }
-
-            ChangeSet = builder.ToString();
-        }
-        #endregion
 
         #region Methods
 
         private bool GetBuildPaths()
         {
-            if (_product == null)
-                return false;
-
-            var path = _xml.GetPath(_product, _release);
-            var buildpaths = path as Path[] ?? path.ToArray();
-            foreach (var buildpath in buildpaths)
+            try
             {
-                if (buildpath.Name == "SourceRepo")
-                    _sourceRepo = buildpath.Location;
+                var path = _xml.GetPath(Product, _release);
+                var buildpaths = path as Path[] ?? path.ToArray();
+                foreach (var buildpath in buildpaths)
+                {
+                    if (buildpath.Name == "RemoteRepo")
+                        _remoteRepo = buildpath.Location;
 
-                if (buildpath.Name == "DeploymentLocation")
-                    _deploymentLocation = buildpath.Location;
+                    if (buildpath.Name == "LocalRepo")
+                        _localRepo = buildpath.Location;
 
-                if (buildpath.Name == "BuildRepo")
-                    _buildRepo = buildpath.Location;
+                    if (buildpath.Name == "DeploymentLocation")
+                        _deploymentLocation = buildpath.Location;
 
-                if (buildpath.Name == "RemoteRepo")
-                    _remoteRepo = buildpath.Location;
+                    if (buildpath.Name == "BuildRepo")
+                        _buildRepo = buildpath.Location;
 
-                if (buildpath.Name == "WorkerReleaseFiles")
-                    _workerReleaseFiles = buildpath.Location;
+                    if (buildpath.Name == "WorkerReleaseFiles")
+                        _workerReleaseFiles = buildpath.Location;
 
-                if (buildpath.Name == "MasterDeployPath")
-                    _masterDeployPath = buildpath.Location;
+                    if (buildpath.Name == "MasterDeployPath")
+                        _masterDeployPath = buildpath.Location;
 
-                if (buildpath.Name == "HelpRepo")
-                    _helpRepo = buildpath.Location;
+                    if (buildpath.Name == "RemoteHelpRepo")
+                        _remoteHelpRepo = buildpath.Location;
+
+                    if (buildpath.Name == "LocalHelpRepo")
+                        _localHelpRepo = buildpath.Location;
+                }
+
+                _stagingPath = _buildRepo + _release + @"\Staging\";
+                return false;
             }
-
-            _stagingPath = _buildRepo + _release + @"\Staging\";
-            return true;
+            catch (Exception e)
+            {
+                _buildLog.Message = e.Message;
+                throw;
+            }
         }
 
         private bool GetVersionInfo()
         {
-            if (Product == null)
-                return false;
-
-            var version = _xml.GetVersion(_product, _release);
-            var versions = version as Versions[] ?? version.ToArray();
-
-            foreach (var item in versions)
-            {
-                FullVersion = item.Version.Split('.');
-                LastBuildVersion = _fullVersion[0] + "." + _fullVersion[1] + "." + _fullVersion[2] + "." +
-                                    (Convert.ToInt16(_fullVersion[3]) - 1);
-                SiteUrl = item.SiteUrl;
-                SolutionFile = item.SolutionFile;
-            }
-
-            return true;
-        }
-
-        public bool ServiceAction(Services services, bool serviceStatus)
-        {
-            ServiceController sc = new ServiceController();
-            sc.ServiceName = services.ServiceName;
-            sc.MachineName = services.Server;
-            const int timeout = 3000;
-
             try
             {
-                if (serviceStatus == false)
+                var version = _xml.GetVersion(_product, _release);
+                var versions = version as Versions[] ?? version.ToArray();
+
+                foreach (var item in versions)
                 {
-                    if (sc.Status != ServiceControllerStatus.Running)
-                    {
-                        sc.Start();
-                        sc.WaitForStatus(ServiceControllerStatus.Running, new TimeSpan(0, timeout, 0));
-                    }
+                    _lastBuildVersion = item.Version;
+                    _fullVersion = item.Version.Split('.');
+                    //_lastBuildVersion = _fullVersion[0] + "." + _fullVersion[1] + "." + _fullVersion[2] + "." + (Convert.ToInt16(_fullVersion[3]) - 1);
+                    _solutionFile = item.SolutionFile;
+                    _currentBuildVersion = _fullVersion[0] + "." + _fullVersion[1] + "." + _fullVersion[2];
                 }
-                else
-                {
-                    if (sc.Status != ServiceControllerStatus.Stopped)
-                    {
-                        sc.Stop();
-                        sc.WaitForStatus(ServiceControllerStatus.Stopped, new TimeSpan(0, timeout, 0));
-                    }
-                }
-            }
-            catch (InvalidOperationException io)
-            {
-                _buildLog.Message = io.Message.ToString();
-                _sendMail.EmailTammyOnly("Service Failure", io.Message.ToString());
                 return false;
-            }
-            return true;
-        }
-
-        private void ManageDstService(bool serviceState)
-        {
-            try
-            {
-                var serviceItem = _xml.GetServices(_product, _release);
-                foreach (var services in serviceItem)
-                {
-                    if (services == null) continue;
-                    try
-                    {
-                        ServiceAction(services, serviceState);
-                    }
-
-                    catch (Exception e)
-                    {
-                        _buildLog.Message = e.Message.ToString();
-                    }
-                }
             }
             catch (Exception e)
             {
-                _buildLog.Message = e.Message.ToString();
+                _buildLog.Message = e.Message;
+                throw;
             }
         }
 
-        private bool CheckFileExistsAndExecute(string filePath, string commandline, string logPath, string message)
+        private void SendNotification(string version, int minutes)
         {
-            // are there errors in the build logs?
-            bool flag = false;
-            //if (File.Exists(filePath))
+            try
             {
-                //_batchProcess.RunProcess(filePath);
-                _batchProcess.RunProcess(filePath, commandline + logPath);
-                if (_files.CheckProcessLog(logPath) == true)
-                {
-                    _buildLog.Message = message;
-                    _sendMail.EmailSender(_xml.GetEmailGroup("DST"), "DST Compile Failure", message, logPath);
-                    flag = true;
-                }
-                else { flag = false; }
+                string minuteText = "";
+                minuteText = minutes > 1 ? "minutes." : "minute.";
+
+                _buildLog.Message = "Sending notification email";
+                _sendMail.EmailSender(_xml.GetEmailGroup(Product),
+                    "Starting " + Product + " - " + version + " build in " + minutes + " " + minuteText,
+                    "Starting build in " + minutes + " " + minuteText);
+                _buildLog.Message = "Waiting " + minutes + " " + minuteText;
+                Thread.Sleep(minutes * 60000);
             }
-            //else
-            //{
-            //    _buildLog.Message = filePath + " does not exist.";
-            //    flag = true;
-            //}
-
-            return flag;
-        }
-
-        private bool SendNotification(string version, int minutes, string type)
-        {
-            if (_product != null)
-            return false;
-
-            string minuteText = "";
-            minuteText = minutes > 1 ? "minutes." : "minute.";
-
-            _buildLog.Message = "Sending notification email";
-            _sendMail.EmailSender(_xml.GetEmailGroup(_product), "Starting " + _product + " - " + version + " build in " + minutes + " " + minuteText, "Starting " + type + " build in " + minutes.ToString() + " " + minuteText);
-            _buildLog.Message = "Waiting " + minutes + " " + minuteText;
-            Thread.Sleep(minutes * 60000);
-
-            return true;
-        }
-
-
-
-        private bool SimpleMsBuild()
-        {
-            //Not being used - keeping for history. Simple, simple snipet for msbuild api
-            var buildFileUri = SolutionFile + @"App\DSTM.App.csproj";
-            var project = new Project(buildFileUri, null, "12.0");
-            //var ok = project.Build(); 
-            var ok = project.Build("Rebuild", new[] { new MSBuildLogger  {
-                    Verbosity = LoggerVerbosity.Minimal,
-                    Parameters = SolutionFile + @"\app.txt"
-                    }}
-                    );
-            return ok;
-        }
-
-        private bool MsBuildApi()
-        {
-            //not being used because the App project does not build - no errors, but builds fail. Keeping for history.
-            string projectLogFile;
-
-            List<string> projects = new List<string>
+            catch (Exception e)
             {
-                //SolutionFile + @"Web\DSTM.Web.csproj",
-                SolutionFile + @"App\DSTM.App.csproj"
-            };
-
-            //projects.Add(@"C:\Mercurial\DSTSM\TestBuild\DSTSM-TestBuild\Application\DST - All Projects.sln");
-            //projects.Add(@"C:\Mercurial\DSTSM\Current\Application\WorkerServices.sln");
-            
-            foreach (var project in projects)
-            {
-                ProjectInstance pc = new ProjectInstance(project);
-                Dictionary<string, string> globalProperty = new Dictionary<string, string>
-                {
-                    {"Configuration", "Release"},
-                    {"Platform", "Any CPU"},
-                    {"PipelinePreDeployCopyAllFilesToOneFolder", "true"},
-                    {"TransformWebConfig", "true"},
-                    {"AutoParameterizationWebConfigConnectionStrings", "false"},
-                    {"OutputPath", SourceRepo + @"\Deployment\"},
-                    {"_PackageTempDir", SourceRepo + @"\Deployment\"}
-                };
-
-
-                projectLogFile = project.Replace(".csproj", ".txt");
-                BuildParameters bp = new BuildParameters
-                {
-                    OnlyLogCriticalEvents = true,
-                    DetailedSummary = true,
-                    DefaultToolsVersion = "12.0",
-                    GlobalProperties = globalProperty,
-                    Loggers = new[]
-                    {
-                        new MSBuildLogger
-                        {
-                            Verbosity = LoggerVerbosity.Minimal,
-                            Parameters = projectLogFile
-                        }
-                    }
-                };
-
-                BuildRequestData buildRequest = new BuildRequestData(pc, new string[] {"Rebuild"});
-                //BuildResult buildResult = BuildManager.DefaultBuildManager.BeginBuild(bp);
-
-                //BuildRequestData buildRequest = new BuildRequestData(project, globalProperty, "12.0", new string[] { "Clean", "Build" }, null);
-                BuildResult buildResult = BuildManager.DefaultBuildManager.Build(bp, buildRequest);
-
-
-                if (buildResult.OverallResult == BuildResultCode.Failure)
-                {
-                    //_buildLog.Message = buildResult.Exception.ToString();
-                }
+                _buildLog.Message = e.Message;
             }
-
-            return false;
         }
 
+        private void BuildLogNull()
+        {
+            Task.Delay(5000);
+            _buildLog.Message = null;
+        }
+
+        //msbuild method that doesn't work
+
+        //private void msbuildExecute(string solutionFile, string sourceRepo)
+        //{
+        //    ProjectCollection pc = new ProjectCollection();
+        //    Dictionary<string, string> globalProperty = new Dictionary<string, string>
+        //    {
+        //        {"Configuration", "Release"},
+        //        {"Platform", "Any CPU"},
+        //        {"OutputPath" ,  @"C:\Mercurial\DSTSM\TestBuild\Application\App\" + "\\bin\\Release"},
+        //        {"TransformWebConfig", "true"},
+        //        {"AutoParameterizationWebConfigConnectionStrings", "false"}
+        //    };
+
+        //    BuildParameters bp = new BuildParameters(pc)
+        //    {
+        //        Loggers = new[]
+        //        {
+        //            new FileLogger
+        //            {
+        //                Verbosity = LoggerVerbosity.Diagnostic,
+        //                ShowSummary = true,
+        //                SkipProjectStartedText = false,
+        //                Parameters = @"logfile=C:\Mercurial\DSTSM\TestBuild\Application\buildLog.txt"
+        //            }
+        //        }
+        //    };
+
+        //    BuildManager.DefaultBuildManager.BeginBuild(bp);
+        //    BuildRequestData buildRequest = new BuildRequestData(solutionFile, globalProperty, "12.0", new string[] { "Rebuild" }, null);
+        //    BuildSubmission buildSubmission = BuildManager.DefaultBuildManager.PendBuildRequest(buildRequest);
+        //    buildSubmission.Execute();
+        //    BuildManager.DefaultBuildManager.EndBuild();
+        //    if (buildSubmission.BuildResult.OverallResult == BuildResultCode.Failure)
+        //    {
+        //        throw new Exception();
+        //    }
+        //}
+
+        #endregion
+
+
+        #endregion
     }
-        #endregion
-        #endregion
 }
+

@@ -1,0 +1,184 @@
+﻿<script src="~/Scripts/jquery-1.9.1.js"></script>
+<script type="text/javascript" src="~/Scripts/modernizr-1.5.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+<script type="text/javascript">   
+
+    var timing;
+
+    //GetBuild status function - pings every 1 second
+    $(document).ready(function GetStatus() {
+        jQuery.support.cors = true;
+        
+            $.ajax({
+                url: '/api/buildStatus?product="DST"',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    WriteResponses(data);
+                },
+                timeout: timing = ("GetStatus()", 1000),
+                complete: timing = setTimeout(function () { GetStatus() }, 1000),
+                error: function () {
+                    $('#Button1').removeAttr('disabled'),
+                    clearTimeout(timing);
+                }
+            });
+
+            function WriteResponses(logs) {
+                if (logs.Message == null) {
+                    document.getElementById('message').innerHTML = "<h2>Ready to build.</h2>"; ;
+                } else { document.getElementById('message').innerHTML = "<h2>" + logs.Message + "</h2>" }
+        }
+    })
+
+    //function GetStatus() {
+    //    jQuery.support.cors = true;
+    //    $.ajax({
+    //        url: '/api/buildStatus?product="DST"',
+    //        type: 'GET',
+    //        dataType: 'json',
+    //        success: function (data) {
+    //           WriteResponses(data);
+    //        },
+    //        error: function (x, y, z) {
+    //            alert(x + '\n' + y + '\n' + z);
+    //        }
+    //    });
+
+    //    function WriteResponses(logs) {
+    //        document.getElementById('message').innerHTML = "<h3>" + logs.Message + "</h3>";
+    //    }
+    //}
+
+    //Get Versions for dropdownlist (with sort)
+    $(document).ready(function GetRelease(){
+        $.ajax({
+            type: "GET",
+            url: '/xml/DST/release',
+            dataType: "json",
+            success: function (data) {
+                var result = [];
+                $.each(data, function (key, value) {
+                    result[key] = value;
+                });
+
+                result.sort;
+
+                $.each(result, function (index, value) {
+                    if (value != undefined) {
+                        var appenddata = "<option value = '" + value.Release + " '>" + value.Release + " </option>";
+                        $(appenddata).appendTo('#DLRelease');
+                    }
+                })
+
+                GetVersionFromRelease();
+            }
+        });
+    })
+
+    function GetVersionFromRelease(){
+        var urlparam = $('#DLRelease').val();
+        $.ajax({
+            type: "GET",
+            url: '/xml/DST/version?release=' + urlparam,
+            dataType: "json",
+            success: function (data) {
+                var json = data;
+                var x = findElement(json, "Version");
+                var lastbuild = findElement(json, "LastBuildDateTime");
+                var valsplit = x.split('.');
+                document.getElementById('v1').value = valsplit[0];
+                document.getElementById('v2').value = valsplit[1];
+                document.getElementById('v3').value = valsplit[2];
+                document.getElementById('spinner').value = parseInt(valsplit[3]) + 1;
+                document.getElementById('lastbuild').innerHTML = "<h2>" + lastbuild + "</h2>";
+                document.getElementById('lastbuildversion').innerHTML = "<h2>" + x + "</h2>";
+            }
+    });
+    
+    }
+
+    function findElement(arr, propName) {
+        for (var i = 0; i < arr.length; i++)
+                return arr[i][propName];
+    }
+
+    function StartBuild() {        
+            $('#Button1').prop('disabled', true);
+            var sendNotification = $('#sendNotification').prop('checked')
+            var minutes = $('#minutes').val();
+            var version = $('#v1').val() + "." + $('#v2').val() + "." + $('#v3').val() + "." + $('#spinner').val().trim();
+            var release = $('#DLRelease').val().trim();
+            $.ajax({
+                type: "POST",
+                url: "/api/build?product=DST&release=" + release + "&version=" + version + "&sendNotification=" + sendNotification + "&minutes=" + minutes,
+                data: {},
+                contentType: "application/json; charset=utf-8",
+                datatype: "JSON",
+                success: function () { $('#Button1').removeAttr('disabled'), clearTimeout(timing) },
+                error: function () {
+                    $('#Button1').removeAttr('disabled'),
+                    clearTimeout(timing);
+                }
+            });
+        } 
+
+    
+</script>
+
+             
+    <div id="site_content">
+        <form name="builder" action="#" method="post">              
+        <div id="sidebar_container">
+                <div class="sidebar">
+                    <h4>Build Status</h4>
+                    <span style="display:block;width:300px;word-wrap:break-word;" id="message"></span>
+                </div>
+                <div class="sidebar">
+                    <h4>Last Build Stats</h4>
+                    <span id="lastbuildversion"></span><br/>
+                    <span id="lastbuild"></span>
+                </div>     
+        </div>
+        <div id="center">
+            <table>
+                <tr>
+                    <td>Release</td>
+                    <td><select id="DLRelease" onchange="GetVersionFromRelease()"></select></td>
+                </tr>
+                <tr>
+                    <td>Version</td>
+                    <td>
+                        <input id="v1" type="text" style="width:25px" disabled ="disabled" />
+                        <input id="v2" type="text" style="width:25px" disabled ="disabled" />
+                        <input id="v3" type="text" style="width:25px" disabled ="disabled" />
+                        <input style="width:25px" id="spinner" name="name" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Send Notification and Delay?</td>
+                    <td><input class="checkbox" type="checkbox" id="sendNotification" checked /></td>
+                </tr>
+                <tr>
+                    <td>Minutes</td>
+                    <td><input style="width:25px" id="minutes" value="1"/></td>
+                </tr>
+                <tr>
+                    <td colspan="2"><b>This will build both the binaries and generate a master_deploy for oracle.</b></td>                         
+                </tr> 
+            </table>        
+    </div>
+        <div class="form_settings">
+            <input id="Button1" class="submit" type="button" value="Start Build" onclick="StartBuild()" />
+        </div>    
+    </form>
+</div>
+
+<script>
+    //jquery
+    $("#spinner").spinner();
+    $("#minutes").spinner();
+</script>
+
+

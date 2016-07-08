@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Web;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -12,6 +13,7 @@ namespace DSTBuilder.Models
     public class XmlRepository : IXmlRepository
     {        
         private readonly string _xmlDatabase = ConfigurationManager.AppSettings["xmlLocation"];
+        //private readonly string _xmlDatabase = HttpContext.Current.Server.MapPath("~/App_Data/ProductConfig2.xml");
         private readonly BuildRepository _buildRepository = new BuildRepository();
 
         public string Product
@@ -53,16 +55,8 @@ namespace DSTBuilder.Models
             {
                 paths.AddRange(version.Descendants("Path").Select(path => new Path
                 {
-                    //SourceRepo = ((string)path.Attribute("SourceCode")),
-                    //BuildRepo = ((string)path.Attribute("BuildPath")),
-                    //HelpRepo = ((string)path.Attribute("HelpRepo")),
-                    //RemoteRepo = ((string)path.Attribute("RemoteRepo")),
-                    //MasterDeployPath = ((string)path.Attribute("MasterDeployPath")),
-                    //DeploymentLocation = ((string)path.Attribute("PushLocation")),
-                    //ChangeLog = ((string)path.Attribute("ChangeLog")),
-                    //WorkerReleaseFiles = ((string)path.Attribute("WorkerReleaseFiles"))
-                    Name = ((string)path.Attribute("Name")),
-                    Location = ((string)path.Attribute("Location")),
+                    Name = (string)path.Attribute("Name"),
+                    Location = (string)path.Attribute("Location")
                 }));
             }
 
@@ -80,8 +74,7 @@ namespace DSTBuilder.Models
             {
                 servers.AddRange(version.Descendants("Server").Select(server => new Server
                 {
-                    Name = ((string)server.Attribute("Name")),
-                    IP = ((string)server.Attribute("Ip"))
+                    Name = (string)server.Attribute("Name")
                 }));
             }
 
@@ -99,8 +92,7 @@ namespace DSTBuilder.Models
             {
                 servers.AddRange(version.Descendants("Server").Where(e => e.Attribute("Name").Value == serverName).Select(server => new Server
                 {
-                    Name = ((string) server.Attribute("Name")), 
-                    IP = ((string) server.Attribute("Ip"))
+                    Name = (string) server.Attribute("Name")
                 }));
             }
 
@@ -135,7 +127,7 @@ namespace DSTBuilder.Models
                     locations.AddRange(server.Descendants("Location").Select(location => new Location
                     {
                         Source = ((string) location.Attribute("Source")), 
-                        Path = ((string) location.Attribute("Path")), 
+                        SharePath = ((string) location.Attribute("SharePath")), 
                         Name = ((string) location.Attribute("Name"))
                     }));
                 }

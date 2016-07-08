@@ -24,7 +24,6 @@ namespace DSTBuilder.Models
     public class Server
     {
         public string Name { get; set; }
-        public string IP { get; set; }
     }
 
     public class Product
@@ -35,7 +34,7 @@ namespace DSTBuilder.Models
     public class Location
     {
         public string Source { get; set; }
-        public string Path { get; set; }
+        public string SharePath { get; set; }
         public string Name { get; set; }
     }
 

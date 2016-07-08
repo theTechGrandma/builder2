@@ -11,7 +11,6 @@ namespace DSTBuilder.Controllers
     public class BuildController : ApiController
     {
         static readonly BuildRepository buildRepository = new BuildRepository();
-        //private string _xmlDatabase = @"C:\ProductConfigurations.xml";
 
         // POST api/build
         [Route("api/build")]
@@ -25,7 +24,7 @@ namespace DSTBuilder.Controllers
         [HttpPost]
         public void GenerateMasterDeploy(string product, string release, string fromVersion, string toVersion)
         {
-            buildRepository.GenerateMasterDeploy(product, release, fromVersion, toVersion);
+            buildRepository.GenerateMasterDeploy(product, release, fromVersion, toVersion, true);
         }
 
         [Route("api/pushCode")]

@@ -1,111 +1,85 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
-using DSTBuilder.Models;
-using DSTBuilder.Controllers;
-using System.Diagnostics;
-using System.Security;
-using System.Threading.Tasks;
 
 namespace DSTBuilder.Helpers
 {
     public class Files
     {
-
-        private BatchProcess _pmProcess = new BatchProcess();
-        private Log _buildLog = new Log();
-        private SendMail _sendMail = new SendMail();
-        private XmlController _xml = new XmlController();
-
-        public bool CheckDirExists(string dirToCheck)
+        public void CheckDirExists(string dirToCheck)
         {
-            if (!Directory.Exists(dirToCheck))
+            if (Directory.Exists(dirToCheck)) return;
+            try
             {
                 Directory.CreateDirectory(dirToCheck);
             }
-            return true;
+            catch
+            { 
+                throw new Exception("Cannot create directory" + dirToCheck);
+            }
         }
 
         public bool DeleteFiles(string filesToDelete, string wildcard)
         {
             if (Directory.Exists(filesToDelete))
             {
-                foreach (
-                    string file in Directory.GetFiles(filesToDelete, wildcard, System.IO.SearchOption.TopDirectoryOnly))
+                try
                 {
-                    File.SetAttributes(file, FileAttributes.Normal);
-                    File.Delete(file);
+                    foreach (
+                    var file in Directory.GetFiles(filesToDelete, wildcard, System.IO.SearchOption.TopDirectoryOnly))
+                    {
+                        File.SetAttributes(file, FileAttributes.Normal);
+                        File.Delete(file);
+                    }
+                   
                 }
-                return true;
+                catch
+                {
+                    throw new Exception("Cannot delete files" + filesToDelete);
+                }
             }
-            else
-            {
-                return false;
-            }
+            return true;
         }
 
         public bool DeleteDir(string pathToDelete)
         {
-            if (Directory.Exists(pathToDelete))
+            foreach (var directory in Directory.GetDirectories(pathToDelete))
             {
-                DateTime date = DateTime.Now.AddDays(-3);
-
-                DirectoryInfo diTop = new DirectoryInfo(pathToDelete);
-
-                foreach (var fi in diTop.EnumerateFiles())
-                {
-                    try
-                    {
-                        if (!fi.Name.Contains("dstmlog"))
-                        {
-                            fi.Delete();
-                        }
-
-                        if (fi.Name.Contains("dstmlog"))
-                        {
-                            if (date > fi.CreationTime)
-                                fi.Delete();
-                        }
-                    }
-                    catch (UnauthorizedAccessException UnAuthTop)
-                    {
-                        Console.WriteLine("{0}", UnAuthTop.Message);
-                    }
-                }
-
-                foreach (var di in diTop.EnumerateDirectories("*"))
-                {
-                    try
-                    {
-                        di.Delete(true);
-                    }
-                    catch (UnauthorizedAccessException UnAuthSubDir)
-                    {
-                        Console.WriteLine("UnAuthSubDir: {0}", UnAuthSubDir.Message);
-                    }
-                }
+                DeleteDir(directory);
             }
 
+            try
+            {
+                Directory.Delete(pathToDelete, true);
+            }
+            catch (IOException)
+            {
+                Directory.Delete(pathToDelete, true);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Directory.Delete(pathToDelete, true);
+            }
             return true;
         }
 
-        public bool AssemblyInfoChanger(string assemblyInfoPath, string version)
+        public void AssemblyInfoChanger(string assemblyInfoPath, string version)
         {
-            if (File.Exists(assemblyInfoPath))
+            if (!File.Exists(assemblyInfoPath)) return;
+            // Set Permission to writable
+            File.SetAttributes(assemblyInfoPath, FileAttributes.Normal);
+
+            // string array to hold information
+            string[] beginFile = File.ReadAllLines(assemblyInfoPath);
+
+            // new List to write out new information
+            var endFile = new List<string>();
+
+            try
             {
-                // Set Permission to writable
-                File.SetAttributes(assemblyInfoPath, FileAttributes.Normal);
-
-                // string array to hold information
-                string[] beginFile = File.ReadAllLines(assemblyInfoPath);
-
-                // new List to write out new information
-                List<string> endFile = new List<string>();
-
                 // loop to change out information we need
-                foreach (string currentString in beginFile)
+                foreach (var currentString in beginFile)
                 {
                     if (currentString.Contains("AssemblyVersion") && !currentString.Contains(@"//"))
                     {
@@ -120,227 +94,121 @@ namespace DSTBuilder.Helpers
                         endFile.Add(currentString);
                     }
                 }
-
                 // write out information to new AssemblyInfo.cs
                 File.WriteAllLines(assemblyInfoPath, endFile.ToArray());
-                return true;
             }
-            else
+            catch (Exception ex)
             {
-                return false;
-            }
-        }
-
-        public bool IncrementAssemblyVersion(string assemblyInfoPath)
-        {
-            if (File.Exists(assemblyInfoPath))
-            {
-                // Set Permission to writable
-                File.SetAttributes(assemblyInfoPath, FileAttributes.Normal);
-
-                // string array to hold information
-                string[] beginFile = File.ReadAllLines(assemblyInfoPath);
-
-                // new List to write out new information
-                List<string> endFile = new List<string>();
-
-                // loop to change out information we need
-                foreach (string currentString in beginFile)
-                {
-                    // Increment AssemblyVersion
-                    if (currentString.Contains("AssemblyVersion") && !currentString.Contains(@"//"))
-                    {
-                        endFile.Add(@"[assembly: AssemblyVersion(""" + IncrementVersion(currentString) + @""")]");
-                    }
-
-                    // Increment AssemblyFileVersion
-                    else if (currentString.Contains("AssemblyFileVersion") && !currentString.Contains(@"//"))
-                    {
-                        endFile.Add(@"[assembly: AssemblyFileVersion(""" + IncrementVersion(currentString) + @""")]");
-                    }
-
-                    // else keep it as is
-                    else
-                    {
-                        endFile.Add(currentString);
-                    }
-
-                }
-                // write out information to new AssemblyInfo.cs
-                File.WriteAllLines(assemblyInfoPath, endFile.ToArray());
-                return true;
-            }
-            else
-            {
-                _buildLog.Message = "Cannot increment assembly version.";
-                return false;
-            }
-        }
-
-        public void CheckFileExistsAndExecute(string filePath)
-        {
-            if (File.Exists(filePath))
-            {
-                _pmProcess.RunProcess(filePath);
+                throw new Exception("The service has a problem.", ex);
             }
         }
 
         public bool CheckProcessLog(string logPath)
         {
-            if (File.Exists(logPath))
-            {
-                //are there errors in the logs?
-                bool flag = false;
+            //are there errors in the logs?
+            if (logPath == null || !logPath.Contains("buildLog.txt")) return true;
+            if (!File.ReadAllText(logPath).Contains("0 Error(s)"))
+                throw new Exception("Compile Errors!");
 
-                if (logPath.Contains("DSTBuildLog.txt"))
-                {
-                    if (File.ReadAllText(logPath).Contains("0 failed"))
-                    {
-                        flag = false;
-                    }
-                    else
-                    {
-                        flag = true;
-                    }
-                }
-                else if (logPath.Contains("DSTWebBuildLog.txt"))
-                {
-                    if (File.ReadAllText(logPath).Contains("0 Error(s)"))
-                    {
-                        flag = false;
-                    }
-                    else
-                    {
-                        flag = true;
-                    }
-                }
-                else if (logPath.Contains("WHSBuildLog.txt"))
-                {
-                    if (File.ReadAllText(logPath).Contains("0 failed"))
-                    {
-                        flag = false;
-                    }
-                    else
-                    {
-                        flag = true;
-                    }
-                }
-
-                return flag;
-            }
-            else
-            {
-                return false;
-            }
-
+            if (File.ReadAllText(logPath).Contains("FAILED"))
+                throw new Exception("Compile Errors!");
+            return true;
         }
 
         public string IncrementVersion(string currentString)
         {
-            string version = currentString;
-
-            // First Parse Quotes 
-            string[] parseQuotes = currentString.Split('\"');
-
-            foreach (string versions in parseQuotes)
+            var version = currentString;
+            try
             {
-                // if it's the one we want "1.0.0.0"
-                if (versions.Contains('.'))
+                var parseQuotes = currentString.Split('\"');
+
+                foreach (string versions in parseQuotes)
                 {
-                    string[] AllVersions = versions.Split('.');
+                    // if it's the one we want "1.0.0.0"
+                    if (!versions.Contains('.')) continue;
+                    string[] allVersions = versions.Split('.');
 
                     int incVersion;
-                    if (int.TryParse(AllVersions[3], out incVersion))
-                    {
-                        incVersion++;
-                        version = AllVersions[0] + "." + AllVersions[1] + "." + AllVersions[2] + "." +
-                                  incVersion.ToString();
-                    }
+                    if (!int.TryParse(allVersions[3], out incVersion)) continue;
+                    incVersion++;
+                    version = allVersions[0] + "." + allVersions[1] + "." + allVersions[2] + "." +
+                              incVersion;
                 }
             }
+            catch
+            {
+                throw new Exception("Problem updating assemblies references.");
+            }
+           
             return version;
         }
 
-        public bool CheckFileExists(string pathToCheck)
+        public bool CopyPdf(string start, string finish)
         {
-            if (File.Exists(pathToCheck))
-            {
-                return true;
-            }
-            else
-            {
+            if (!Directory.Exists(finish))
                 return false;
-            }
-        }
 
-        //public bool DeleteChangeLog()
-        //{
-        //    // deletes the log
-        //    if (File.Exists("C:\\Logs\\ChangedSourceFiles.txt"))
-        //    {
-        //        File.Delete("C:\\Logs\\ChangedSourceFiles.txt");
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return true;
-        //    }
-        //}
-
-
-        public async Task CopyFileAsync(string sourcePath, string destinationPath, string fileType)
-        {
-            Directory.CreateDirectory(destinationPath);
-            //string[] filePaths = Directory.GetFiles(sourcePath, fileType, System.IO.SearchOption.TopDirectoryOnly);
-            List<Task> tasks = new List<Task>();
-            List<FileStream> sourceStreams = new List<FileStream>();
-
-            try
-            {
-                foreach (string filename in Directory.EnumerateFiles(sourcePath))
-                {
-                    File.SetAttributes(filename, FileAttributes.Normal);
-                    using (FileStream sourceStream = File.Open(filename, FileMode.Open))
-                    {
-                        using (FileStream destinationStream = File.Create(destinationPath + filename.Substring(filename.LastIndexOf('\\'))))
-                        {
-                            Task copyTask = sourceStream.CopyToAsync(destinationStream);
-                            sourceStreams.Add(sourceStream);
-                            tasks.Add(copyTask);
-                        }
-                    }
-                }
-
-                Task.WaitAll(tasks.ToArray());
-            }
-
-            finally
-            {
-                foreach (FileStream sourceStream in sourceStreams)
-                {
-                    sourceStream.Close();
-                }
-            }
-        }
-
-        public bool CopyFiles(string start, string finish, string fileType)
-        {
-            Directory.CreateDirectory(finish);
-            string[] filePaths = Directory.GetFiles(start, fileType, System.IO.SearchOption.TopDirectoryOnly);
-            foreach (string file in filePaths)
+            var files = Directory.EnumerateFiles(start, "*.*", SearchOption.AllDirectories)
+            .Where(s => s.EndsWith(".pdf"));
+            foreach (var file in files)
             {
                 try
                 {
-                    string newFile = file.Replace(start, finish);
+                    var newFile = file.Replace(start, finish);
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Copy(file, newFile, true);
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception("Problems copying xap.", ex);
+                }
+            }
+            return true;
+        }
+
+        public bool CopyXap(string start, string finish)
+        {
+            if (!Directory.Exists(finish))
+                return false;
+
+            var files = Directory.EnumerateFiles(start, "*.*", SearchOption.AllDirectories)
+            .Where(s => s.EndsWith(".xap"));
+            foreach (var file in files)
+            {
+                try
+                {
+                    var newFile = file.Replace(start, finish);
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Copy(file, newFile, true);
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception("Problems copying xap.", ex);
+                }
+            }
+            return true;
+        }
+
+        public bool CopyFiles(string start, string finish)
+        {
+            Directory.CreateDirectory(finish);
+            var files = Directory.EnumerateFiles(start, "*.*", SearchOption.AllDirectories)
+            .Where(s => s.EndsWith(".exe") || s.EndsWith(".dll") || s.EndsWith(".config") || s.EndsWith(".bat") || s.EndsWith(".xap"));
+            foreach (var file in files)
+            {
+                try
+                {
+                    var newFile = file.Replace(start, finish);
                     File.SetAttributes(file, FileAttributes.Normal);
                     File.Copy(file, newFile, true);
                 }
                 catch
                 {
-                    return false;
+                    throw new Exception("Problems copying files.");
                 }
             }
             return true;
         }
+        
     }
 }
